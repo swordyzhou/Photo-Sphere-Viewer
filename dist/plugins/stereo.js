@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.3
+* Photo Sphere Viewer 4.6.4
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -225,6 +225,13 @@
 
       _this.markers = null;
       /**
+       * @type {PSV.plugins.CompassPlugin}
+       * @readonly
+       * @private
+       */
+
+      _this.compass = null;
+      /**
        * @member {Object}
        * @protected
        * @property {Promise<boolean>} isSupported - indicates of the gyroscope API is available
@@ -252,6 +259,7 @@
       _AbstractPlugin.prototype.init.call(this);
 
       this.markers = this.psv.getPlugin('markers');
+      this.compass = this.psv.getPlugin('compass');
       this.gyroscope = this.psv.getPlugin('gyroscope');
 
       if (!this.gyroscope) {
@@ -271,6 +279,9 @@
       this.psv.off(photoSphereViewer.CONSTANTS.EVENTS.STOP_ALL, this);
       this.psv.off(photoSphereViewer.CONSTANTS.EVENTS.CLICK, this);
       this.stop();
+      delete this.markers;
+      delete this.compass;
+      delete this.gyroscope;
 
       _AbstractPlugin.prototype.destroy.call(this);
     }
@@ -321,7 +332,7 @@
       this.__lockOrientation();
 
       return this.gyroscope.start().then(function () {
-        var _this2$markers;
+        var _this2$markers, _this2$compass;
 
         // switch renderer
         _this2.prop.renderer = _this2.psv.renderer.renderer;
@@ -330,6 +341,7 @@
         _this2.psv.needsUpdate();
 
         (_this2$markers = _this2.markers) == null ? void 0 : _this2$markers.hide();
+        (_this2$compass = _this2.compass) == null ? void 0 : _this2$compass.hide();
 
         _this2.psv.navbar.hide();
 
@@ -357,12 +369,13 @@
 
     _proto.stop = function stop() {
       if (this.isEnabled()) {
-        var _this$markers;
+        var _this$markers, _this$compass;
 
         this.psv.renderer.renderer = this.prop.renderer;
         this.prop.renderer = null;
         this.psv.needsUpdate();
         (_this$markers = this.markers) == null ? void 0 : _this$markers.show();
+        (_this$compass = this.compass) == null ? void 0 : _this$compass.show();
         this.psv.navbar.show();
 
         this.__unlockOrientation();

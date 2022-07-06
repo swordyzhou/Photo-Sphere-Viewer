@@ -10,7 +10,6 @@
 </template>
 
 <script>
-  const axios = require('axios');
   const { marked } = require('marked');
   const { format, parseISO } = require('date-fns');
 
@@ -23,7 +22,7 @@
     mounted() {
       this.fetchAnnouncements()
         .then(announcements => {
-          this.announcements = announcements.data.map(this.formatAnnouncement);
+          this.announcements = announcements.map(this.formatAnnouncement);
         });
     },
     methods: {
@@ -33,7 +32,14 @@
         if (cacheDate && (new Date() - new Date(cacheDate)) < 1000 * 3600) {
           return Promise.resolve(JSON.parse(localStorage.announcementsCache));
         } else {
-          return axios('/.netlify/functions/announcements')
+          return fetch('/.netlify/functions/announcements')
+            .then((response) => {
+              if (response.ok) {
+                return response.json();
+              } else {
+                throw new Error(response.statusText);
+              }
+            })
             .then(function (data) {
               localStorage.announcementsCacheDate = new Date().toString();
               localStorage.announcementsCache = JSON.stringify(data);

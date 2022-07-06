@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.3
+* Photo Sphere Viewer 4.6.4
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -109,6 +109,7 @@
        */
 
       _this.prop = {
+        visible: true,
         mouse: null,
         mouseDown: false,
         markers: []
@@ -279,6 +280,24 @@
 
           break;
       }
+    }
+    /**
+     * @summary Hides the compass
+     */
+    ;
+
+    _proto.hide = function hide() {
+      this.container.style.display = 'none';
+      this.prop.visible = false;
+    }
+    /**
+     * @summary Shows the compass
+     */
+    ;
+
+    _proto.show = function show() {
+      this.container.style.display = '';
+      this.prop.visible = true;
     }
     /**
      * @summary Changes the hotspots on the compass

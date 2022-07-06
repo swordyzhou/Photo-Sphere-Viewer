@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.3
+* Photo Sphere Viewer 4.6.4
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -263,6 +263,7 @@
    * @typedef {Object} PSV.plugins.GyroscopePlugin.Options
    * @property {boolean} [touchmove=true] - allows to pan horizontally when the gyroscope is enabled (requires global `mousemove=true`)
    * @property {boolean} [absolutePosition=false] - when true the view will ignore the current direction when enabling gyroscope control
+   * @property {'smooth' | 'fast'} [moveMode='smooth'] - How the gyroscope data is used to rotate the panorama.
    */
   // add gyroscope button
 
@@ -308,7 +309,8 @@
 
       _this.config = _extends({
         touchmove: true,
-        absolutePosition: false
+        absolutePosition: false,
+        moveMode: 'smooth'
       }, options);
       /**
        * @member {DeviceOrientationControls}
@@ -437,6 +439,7 @@
         this.prop.enabled = false;
         this.psv.config.moveInertia = this.prop.config_moveInertia;
         this.trigger(EVENTS.GYROSCOPE_UPDATED, false);
+        this.psv.resetIdleTimer();
       }
     }
     /**
@@ -485,7 +488,8 @@
           latitude: -_sphericalCoords.latitude
         }; // having a slow speed on smalls movements allows to absorb the device/hand vibrations
 
-        this.psv.dynamics.position.goto(target, photoSphereViewer.utils.getAngle(position, target) < 0.01 ? 1 : 3);
+        var step = this.config.moveMode === 'smooth' ? 3 : 10;
+        this.psv.dynamics.position.goto(target, photoSphereViewer.utils.getAngle(position, target) < 0.01 ? 1 : step);
       }
     }
     /**

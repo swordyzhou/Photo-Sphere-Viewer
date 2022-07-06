@@ -1,10 +1,11 @@
-import { AbstractAdapter, Viewer } from 'photo-sphere-viewer';
+import { PanoData, PanoDataProvider, AbstractAdapter, Viewer } from 'photo-sphere-viewer';
 
 /**
  * @summary Configuration of a tiled panorama
  */
 type EquirectangularTilesPanorama = {
   baseUrl?: string;
+  basePanoData?: PanoData | PanoDataProvider;
   width: number;
   cols: number;
   rows: number;

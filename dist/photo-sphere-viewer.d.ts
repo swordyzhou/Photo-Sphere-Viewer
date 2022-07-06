@@ -982,6 +982,7 @@ type ViewerOptions = {
   moveSpeed?: number;
   zoomSpeed?: number;
   autorotateDelay?: number,
+  autorotateIdle?: boolean;
   autorotateSpeed?: string | number;
   autorotateLat?: number;
   moveInertia?: boolean;

@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.3
+* Photo Sphere Viewer 4.6.4
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -250,6 +250,7 @@
    * @typedef {Object} PSV.adapters.EquirectangularTilesAdapter.Panorama
    * @summary Configuration of a tiled panorama
    * @property {string} [baseUrl] - low resolution panorama loaded before tiles
+   * @property {PSV.PanoData | PSV.PanoDataProvider} [basePanoData] - panoData configuration associated to low resolution panorama loaded before tiles
    * @property {int} width - complete panorama width (height is always width/2)
    * @property {int} cols - number of vertical tiles
    * @property {int} rows - number of horizontal tiles
@@ -514,7 +515,7 @@
       };
 
       if (panorama.baseUrl) {
-        return _EquirectangularAdapt.prototype.loadTexture.call(this, panorama.baseUrl).then(function (textureData) {
+        return _EquirectangularAdapt.prototype.loadTexture.call(this, panorama.baseUrl, panorama.basePanoData).then(function (textureData) {
           return {
             panorama: panorama,
             texture: textureData.texture,

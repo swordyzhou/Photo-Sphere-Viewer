@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.3
+* Photo Sphere Viewer 4.6.4
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -3568,6 +3568,11 @@
     ;
 
     _proto.onClick = function onClick() {
+      if (this.psv.isAutorotateEnabled()) {
+        this.psv.config.autorotateIdle = false;
+        this.psv.resetIdleTimer();
+      }
+
       this.psv.toggleAutorotate();
     };
 
@@ -3658,126 +3663,6 @@
 
     return CustomButton;
   }(AbstractButton);
-
-  /**
-   * @summary Navbar caption class
-   * @extends PSV.components.AbstractComponent
-   * @memberof PSV.components
-   */
-
-  var NavbarCaption = /*#__PURE__*/function (_AbstractComponent) {
-    _inheritsLoose(NavbarCaption, _AbstractComponent);
-
-    /**
-     * @param {PSV.components.Navbar} navbar
-     * @param {string} caption
-     */
-    function NavbarCaption(navbar, caption) {
-      var _this;
-
-      _this = _AbstractComponent.call(this, navbar, 'psv-caption') || this;
-      /**
-       * @override
-       * @property {string} id
-       * @property {boolean} collapsable
-       * @property {number} width
-       * @property {number} contentWidth - width of the caption content
-       */
-
-      _this.prop = _extends({}, _this.prop, {
-        id: _this.constructor.id,
-        collapsable: false,
-        width: 0,
-        contentWidth: 0
-      });
-      /**
-       * @member {HTMLElement}
-       * @readonly
-       * @private
-       */
-
-      _this.content = document.createElement('div');
-      _this.content.className = 'psv-caption-content';
-
-      _this.container.appendChild(_this.content);
-
-      _this.setCaption(caption);
-
-      return _this;
-    }
-    /**
-     * @override
-     */
-
-
-    var _proto = NavbarCaption.prototype;
-
-    _proto.destroy = function destroy() {
-      delete this.content;
-
-      _AbstractComponent.prototype.destroy.call(this);
-    }
-    /**
-     * @summary Sets the bar caption
-     * @param {string} html
-     */
-    ;
-
-    _proto.setCaption = function setCaption(html) {
-      this.show();
-      this.content.innerHTML = html;
-      this.prop.contentWidth = html ? this.content.offsetWidth : 0;
-      this.refreshUi();
-    }
-    /**
-     * @summary Toggles content and icon depending on available space
-     * @private
-     */
-    ;
-
-    _proto.refreshUi = function refreshUi() {
-      var availableWidth = this.container.offsetWidth;
-
-      if (availableWidth >= this.prop.contentWidth) {
-        this.show();
-      } else if (availableWidth < this.prop.contentWidth) {
-        this.hide();
-      }
-
-      this.__refreshButton();
-    }
-    /**
-     * @override
-     */
-    ;
-
-    _proto.hide = function hide() {
-      this.content.style.display = 'none';
-      this.prop.visible = false;
-    }
-    /**
-     * @override
-     */
-    ;
-
-    _proto.show = function show() {
-      this.content.style.display = '';
-      this.prop.visible = true;
-    }
-    /**
-     * @private
-     */
-    ;
-
-    _proto.__refreshButton = function __refreshButton() {
-      var _this$psv$navbar$getB;
-
-      (_this$psv$navbar$getB = this.psv.navbar.getButton(DescriptionButton.id, false)) == null ? void 0 : _this$psv$navbar$getB.refreshUi(true);
-    };
-
-    return NavbarCaption;
-  }(AbstractComponent);
-  NavbarCaption.id = 'caption';
 
   var info = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 64 64\"><path fill=\"currentColor\" d=\"M28.3 26.1c-1 2.6-1.9 4.8-2.6 7-2.5 7.4-5 14.7-7.2 22-1.3 4.4.5 7.2 4.3 7.8 1.3.2 2.8.2 4.2-.1 8.2-2 11.9-8.6 15.7-15.2l-2.2 2a18.8 18.8 0 0 1-7.4 5.2 2 2 0 0 1-1.6-.2c-.2-.1 0-1 0-1.4l.8-1.8L41.9 28c.5-1.4.9-3 .7-4.4-.2-2.6-3-4.4-6.3-4.4-8.8.2-15 4.5-19.5 11.8-.2.3-.2.6-.3 1.3 3.7-2.8 6.8-6.1 11.8-6.2z\"/><circle fill=\"currentColor\" cx=\"39.3\" cy=\"9.2\" r=\"8.2\"/><!--Created by Arafat Uddin from the Noun Project--></svg>\n";
 
@@ -3894,7 +3779,7 @@
       }
 
       if (refresh) {
-        var caption = this.psv.navbar.getButton(NavbarCaption.id, false);
+        var caption = this.psv.navbar.getButton('caption', false);
         var captionHidden = caption && !caption.isVisible();
         var hasDescription = !!this.psv.config.description;
 
@@ -4460,7 +4345,9 @@
       }
 
       this.prop.handler.up(function () {
-        return _this2.psv.dynamics.position.stop();
+        _this2.psv.dynamics.position.stop();
+
+        _this2.psv.resetIdleTimer();
       });
     };
 
@@ -4838,6 +4725,7 @@
       delete this.zoomRange;
       delete this.zoomValue;
       this.psv.off(EVENTS.ZOOM_UPDATED, this);
+      this.psv.off(EVENTS.READY, this);
 
       _AbstractButton.prototype.destroy.call(this);
     }
@@ -5015,6 +4903,7 @@
     moveSpeed: 1,
     zoomSpeed: 1,
     autorotateDelay: null,
+    autorotateIdle: false,
     autorotateSpeed: '2rpm',
     autorotateLat: null,
     moveInertia: true,
@@ -5149,6 +5038,14 @@
     autorotateSpeed: function autorotateSpeed(_autorotateSpeed) {
       return parseSpeed(_autorotateSpeed);
     },
+    autorotateIdle: function autorotateIdle(_autorotateIdle, config) {
+      if (_autorotateIdle && isNil(config.autorotateDelay)) {
+        logWarn('autorotateIdle requires a non null autorotateDelay');
+        return false;
+      }
+
+      return _autorotateIdle;
+    },
     fisheye: function fisheye(_fisheye) {
       // translate boolean fisheye to amount
       if (_fisheye === true) {
@@ -5205,6 +5102,126 @@
     });
     return config;
   }
+
+  /**
+   * @summary Navbar caption class
+   * @extends PSV.components.AbstractComponent
+   * @memberof PSV.components
+   */
+
+  var NavbarCaption = /*#__PURE__*/function (_AbstractComponent) {
+    _inheritsLoose(NavbarCaption, _AbstractComponent);
+
+    /**
+     * @param {PSV.components.Navbar} navbar
+     * @param {string} caption
+     */
+    function NavbarCaption(navbar, caption) {
+      var _this;
+
+      _this = _AbstractComponent.call(this, navbar, 'psv-caption') || this;
+      /**
+       * @override
+       * @property {string} id
+       * @property {boolean} collapsable
+       * @property {number} width
+       * @property {number} contentWidth - width of the caption content
+       */
+
+      _this.prop = _extends({}, _this.prop, {
+        id: _this.constructor.id,
+        collapsable: false,
+        width: 0,
+        contentWidth: 0
+      });
+      /**
+       * @member {HTMLElement}
+       * @readonly
+       * @private
+       */
+
+      _this.content = document.createElement('div');
+      _this.content.className = 'psv-caption-content';
+
+      _this.container.appendChild(_this.content);
+
+      _this.setCaption(caption);
+
+      return _this;
+    }
+    /**
+     * @override
+     */
+
+
+    var _proto = NavbarCaption.prototype;
+
+    _proto.destroy = function destroy() {
+      delete this.content;
+
+      _AbstractComponent.prototype.destroy.call(this);
+    }
+    /**
+     * @summary Sets the bar caption
+     * @param {string} html
+     */
+    ;
+
+    _proto.setCaption = function setCaption(html) {
+      this.show();
+      this.content.innerHTML = html;
+      this.prop.contentWidth = html ? this.content.offsetWidth : 0;
+      this.refreshUi();
+    }
+    /**
+     * @summary Toggles content and icon depending on available space
+     * @private
+     */
+    ;
+
+    _proto.refreshUi = function refreshUi() {
+      var availableWidth = this.container.offsetWidth;
+
+      if (availableWidth >= this.prop.contentWidth) {
+        this.show();
+      } else if (availableWidth < this.prop.contentWidth) {
+        this.hide();
+      }
+
+      this.__refreshButton();
+    }
+    /**
+     * @override
+     */
+    ;
+
+    _proto.hide = function hide() {
+      this.content.style.display = 'none';
+      this.prop.visible = false;
+    }
+    /**
+     * @override
+     */
+    ;
+
+    _proto.show = function show() {
+      this.content.style.display = '';
+      this.prop.visible = true;
+    }
+    /**
+     * @private
+     */
+    ;
+
+    _proto.__refreshButton = function __refreshButton() {
+      var _this$psv$navbar$getB;
+
+      (_this$psv$navbar$getB = this.psv.navbar.getButton(DescriptionButton.id, false)) == null ? void 0 : _this$psv$navbar$getB.refreshUi(true);
+    };
+
+    return NavbarCaption;
+  }(AbstractComponent);
+  NavbarCaption.id = 'caption';
 
   /**
    * @summary List of available buttons
@@ -6872,11 +6889,18 @@
         return;
       }
 
-      if (this.config.keyboard[e.key] === ACTIONS.TOGGLE_AUTOROTATE) {
+      var action = this.config.keyboard[e.key];
+
+      if (action === ACTIONS.TOGGLE_AUTOROTATE) {
         this.psv.toggleAutorotate();
-      } else if (this.config.keyboard[e.key] && !this.state.keyHandler.time) {
+      } else if (action && !this.state.keyHandler.time) {
+        if (action !== ACTIONS.ZOOM_IN && action !== ACTIONS.ZOOM_OUT) {
+          this.psv.__stopAll();
+        }
         /* eslint-disable */
-        switch (this.config.keyboard[e.key]) {
+
+
+        switch (action) {
           // @formatter:off
           case ACTIONS.ROTATE_LAT_UP:
             this.psv.dynamics.position.roll({
@@ -6936,6 +6960,8 @@
         _this2.psv.dynamics.position.stop();
 
         _this2.psv.dynamics.zoom.stop();
+
+        _this2.psv.resetIdleTimer();
       });
     }
     /**
@@ -7247,8 +7273,7 @@
     _proto.__startMove = function __startMove(evt) {
       var _this6 = this;
 
-      this.psv.stopAutorotate();
-      this.psv.stopAnimation().then(function () {
+      this.psv.__stopAll().then(function () {
         _this6.state.mouseX = evt.clientX;
         _this6.state.mouseY = evt.clientY;
         _this6.state.startMouseX = _this6.state.mouseX;
@@ -7268,21 +7293,25 @@
     ;
 
     _proto.__startMoveZoom = function __startMoveZoom(evt) {
-      var p1 = {
-        x: evt.touches[0].clientX,
-        y: evt.touches[0].clientY
-      };
-      var p2 = {
-        x: evt.touches[1].clientX,
-        y: evt.touches[1].clientY
-      };
-      this.state.pinchDist = distance(p1, p2);
-      this.state.mouseX = (p1.x + p2.x) / 2;
-      this.state.mouseY = (p1.y + p2.y) / 2;
-      this.state.startMouseX = this.state.mouseX;
-      this.state.startMouseY = this.state.mouseY;
-      this.state.moving = true;
-      this.state.zooming = true;
+      var _this7 = this;
+
+      this.psv.__stopAll().then(function () {
+        var p1 = {
+          x: evt.touches[0].clientX,
+          y: evt.touches[0].clientY
+        };
+        var p2 = {
+          x: evt.touches[1].clientX,
+          y: evt.touches[1].clientY
+        };
+        _this7.state.pinchDist = distance(p1, p2);
+        _this7.state.mouseX = (p1.x + p2.x) / 2;
+        _this7.state.mouseY = (p1.y + p2.y) / 2;
+        _this7.state.startMouseX = _this7.state.mouseX;
+        _this7.state.startMouseY = _this7.state.mouseY;
+        _this7.state.moving = true;
+        _this7.state.zooming = true;
+      });
     }
     /**
      * @summary Stops the movement
@@ -7293,6 +7322,8 @@
     ;
 
     _proto.__stopMove = function __stopMove(evt) {
+      this.psv.resetIdleTimer();
+
       if (!getClosest(evt.target, '.psv-container')) {
         this.state.moving = false;
         this.state.mouseHistory.length = 0;
@@ -7324,6 +7355,7 @@
     ;
 
     _proto.__stopMoveZoom = function __stopMoveZoom() {
+      this.psv.resetIdleTimer();
       this.state.mouseHistory.length = 0;
       this.state.moving = false;
       this.state.zooming = false;
@@ -7336,7 +7368,7 @@
     ;
 
     _proto.__stopMoveInertia = function __stopMoveInertia(evt) {
-      var _this7 = this;
+      var _this8 = this;
 
       var direction = {
         x: evt.clientX - this.state.mouseHistory[0][1],
@@ -7357,11 +7389,11 @@
         duration: norm * INERTIA_WINDOW / 100,
         easing: 'outCirc',
         onTick: function onTick(properties) {
-          _this7.__move(properties, false);
+          _this8.__move(properties, false);
         }
       });
       this.prop.animationPromise.then(function () {
-        _this7.state.moving = false;
+        _this8.state.moving = false;
       });
     }
     /**
@@ -7375,7 +7407,7 @@
     ;
 
     _proto.__click = function __click(evt, longtouch) {
-      var _this8 = this;
+      var _this9 = this;
 
       if (longtouch === void 0) {
         longtouch = false;
@@ -7425,8 +7457,8 @@
           this.psv.trigger(EVENTS.CLICK, data);
           this.state.dblclickData = clone(data);
           this.state.dblclickTimeout = setTimeout(function () {
-            _this8.state.dblclickTimeout = null;
-            _this8.state.dblclickData = null;
+            _this9.state.dblclickTimeout = null;
+            _this9.state.dblclickData = null;
           }, DBLCLICK_DELAY);
         } else {
           if (Math.abs(this.state.dblclickData.clientX - data.clientX) < this.state.moveThreshold && Math.abs(this.state.dblclickData.clientY - data.clientY) < this.state.moveThreshold) {
@@ -7789,6 +7821,10 @@
       each(this.psv.dynamics, function (d) {
         return d.update(elapsed);
       });
+
+      if (this.prop.idleTime > 0 && timestamp - this.prop.idleTime > this.config.autorotateDelay) {
+        this.psv.startAutorotate();
+      }
 
       if (this.prop.needsUpdate) {
         this.render();
@@ -8590,7 +8626,7 @@
        * @property {boolean} autorotateEnabled - automatic rotation is enabled
        * @property {PSV.Animation} animationPromise - promise of the current animation
        * @property {Promise} loadingPromise - promise of the setPanorama method
-       * @property startTimeout - timeout id of the automatic rotation delay
+       * @property {number} idleTime - time of the last user action
        * @property {object} objectsObservers
        * @property {PSV.Size} size - size of the container
        * @property {PSV.PanoData} panoData - panorama metadata, if supported
@@ -8609,7 +8645,7 @@
         autorotateEnabled: false,
         animationPromise: null,
         loadingPromise: null,
-        startTimeout: null,
+        idleTime: -1,
         objectsObservers: {},
         size: {
           width: 0,
@@ -8802,10 +8838,8 @@
         } // Queue autorotate
 
 
-        if (_this.config.autorotateDelay) {
-          _this.prop.startTimeout = setTimeout(function () {
-            return _this.startAutorotate();
-          }, _this.config.autorotateDelay);
+        if (!isNil(_this.config.autorotateDelay)) {
+          _this.prop.idleTime = performance.now();
         }
 
         _this.prop.ready = true;
@@ -9051,6 +9085,8 @@
           console.error(err);
           throw err;
         } else {
+          _this3.resetIdleTimer();
+
           _this3.navbar.setCaption(_this3.config.caption);
 
           return true;
@@ -9120,6 +9156,8 @@
     _proto.setOptions = function setOptions(options) {
       var _this4 = this;
 
+      var rawConfig = _extends({}, this.config, options);
+
       each(options, function (value, key) {
         if (DEPRECATED_OPTIONS[key]) {
           logWarn(DEPRECATED_OPTIONS[key]);
@@ -9135,7 +9173,7 @@
         }
 
         if (CONFIG_PARSERS[key]) {
-          _this4.config[key] = CONFIG_PARSERS[key](value, options);
+          _this4.config[key] = CONFIG_PARSERS[key](value, rawConfig);
         } else {
           _this4.config[key] = value;
         }
@@ -9180,6 +9218,11 @@
           case 'canvasBackground':
             _this4.renderer.canvasContainer.style.background = _this4.config.canvasBackground;
             break;
+
+          case 'autorotateIdle':
+            _this4.resetIdleTimer();
+
+            break;
         }
       });
       this.needsUpdate();
@@ -9201,6 +9244,24 @@
       this.setOptions((_this$setOptions = {}, _this$setOptions[option] = value, _this$setOptions));
     }
     /**
+     * @summary Restarts the idle timer (if `autorotateIdle=true`)
+     * @package
+     */
+    ;
+
+    _proto.resetIdleTimer = function resetIdleTimer() {
+      this.prop.idleTime = this.config.autorotateIdle ? performance.now() : -1;
+    }
+    /**
+     * @summary Stops the idle timer
+     * @package
+     */
+    ;
+
+    _proto.disableIdleTimer = function disableIdleTimer() {
+      this.prop.idleTime = -1;
+    }
+    /**
      * @summary Starts the automatic rotation
      * @fires PSV.autorotate
      */
@@ -9212,6 +9273,10 @@
       }
 
       if (refresh && !this.isAutorotateEnabled()) {
+        return;
+      }
+
+      if (!refresh && this.isAutorotateEnabled()) {
         return;
       }
 
@@ -9238,11 +9303,6 @@
     ;
 
     _proto.stopAutorotate = function stopAutorotate() {
-      if (this.prop.startTimeout) {
-        clearTimeout(this.prop.startTimeout);
-        this.prop.startTimeout = null;
-      }
-
       if (this.isAutorotateEnabled()) {
         this.dynamics.position.stop();
         this.prop.autorotateEnabled = false;
@@ -9375,6 +9435,11 @@
             _this5.zoom(properties.zoom);
           }
         }
+      });
+      this.prop.animationPromise.then(function () {
+        _this5.prop.animationPromise = null;
+
+        _this5.resetIdleTimer();
       });
       return this.prop.animationPromise;
     }
@@ -9540,14 +9605,16 @@
     }
     /**
      * @summary Stops all current animations
+     * @returns {Promise}
      * @package
      */
     ;
 
     _proto.__stopAll = function __stopAll() {
-      this.stopAutorotate();
-      this.stopAnimation();
       this.trigger(EVENTS.STOP_ALL);
+      this.disableIdleTimer();
+      this.stopAutorotate();
+      return this.stopAnimation();
     }
     /**
      * @summary Recomputes dynamics speeds

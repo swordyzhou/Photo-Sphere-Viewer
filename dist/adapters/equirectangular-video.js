@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.3
+* Photo Sphere Viewer 4.6.4
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -358,11 +358,12 @@
     _proto.loadTexture = function loadTexture(panorama) {
       return _AbstractVideoAdapter.prototype.loadTexture.call(this, panorama).then(function (_ref) {
         var texture = _ref.texture;
+        var video = texture.image;
         var panoData = {
-          fullWidth: texture.image.width,
-          fullHeight: texture.image.height,
-          croppedWidth: texture.image.width,
-          croppedHeight: texture.image.height,
+          fullWidth: video.videoWidth,
+          fullHeight: video.videoHeight,
+          croppedWidth: video.videoWidth,
+          croppedHeight: video.videoHeight,
           croppedX: 0,
           croppedY: 0,
           poseHeading: 0,
