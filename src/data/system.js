@@ -114,14 +114,15 @@ function isTouchEnabled() {
       resolve(initial);
     };
 
+    window.addEventListener('mousedown', listenerMouse, false);
+    window.addEventListener('touchstart', listenerTouch, false);
+    const listenerTimeoutId = setTimeout(listenerTimeout, 10000);
+
     clear = () => {
       window.removeEventListener('mousedown', listenerMouse);
       window.removeEventListener('touchstart', listenerTouch);
+      clearTimeout(listenerTimeoutId);
     };
-
-    window.addEventListener('mousedown', listenerMouse, false);
-    window.addEventListener('touchstart', listenerTouch, false);
-    setTimeout(listenerTimeout, 10000);
   });
 
   return { initial, promise };
@@ -159,7 +160,7 @@ function getMaxCanvasWidth(maxWidth) {
     ctx.fillRect(0, 0, 1, 1);
 
     try {
-      if (ctx.getImageData(0, 0, 1, 1).data[0] === 255) {
+      if (ctx.getImageData(0, 0, 1, 1).data[0] > 0) {
         return canvas.width;
       }
     }

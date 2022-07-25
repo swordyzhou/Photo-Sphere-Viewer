@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.4
+* Photo Sphere Viewer 4.6.5
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -11,7 +11,7 @@
 })(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
 
   function _extends() {
-    _extends = Object.assign || function (target) {
+    _extends = Object.assign ? Object.assign.bind() : function (target) {
       for (var i = 1; i < arguments.length; i++) {
         var source = arguments[i];
 
@@ -24,7 +24,6 @@
 
       return target;
     };
-
     return _extends.apply(this, arguments);
   }
 
@@ -36,11 +35,10 @@
   }
 
   function _setPrototypeOf(o, p) {
-    _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
+    _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function _setPrototypeOf(o, p) {
       o.__proto__ = p;
       return o;
     };
-
     return _setPrototypeOf(o, p);
   }
 
@@ -51,6 +49,7 @@
    * @property {boolean} [usePanoData=false] - use panoData as visible range, you can also manually call `setRangesFromPanoData`
    */
 
+  var EPS = 0.000001;
   /**
    * @summary Locks visible longitude and/or latitude
    * @extends PSV.plugins.AbstractPlugin
@@ -119,17 +118,32 @@
     ;
 
     _proto.handleEvent = function handleEvent(e) {
+      var sidesReached;
+      var rangedPosition;
+      var currentPosition;
+
       switch (e.type) {
         case photoSphereViewer.CONSTANTS.CHANGE_EVENTS.GET_ANIMATE_POSITION:
         case photoSphereViewer.CONSTANTS.CHANGE_EVENTS.GET_ROTATE_POSITION:
-          return this.applyRanges(e.value).rangedPosition;
+          currentPosition = e.value;
+
+          var _this$applyRanges = this.applyRanges(currentPosition);
+
+          rangedPosition = _this$applyRanges.rangedPosition;
+          return rangedPosition;
 
         case photoSphereViewer.CONSTANTS.EVENTS.POSITION_UPDATED:
-          var _this$applyRanges = this.applyRanges(e.args[0]),
-              sidesReached = _this$applyRanges.sidesReached;
+          currentPosition = e.args[0];
+
+          var _this$applyRanges2 = this.applyRanges(currentPosition);
+
+          sidesReached = _this$applyRanges2.sidesReached;
+          rangedPosition = _this$applyRanges2.rangedPosition;
 
           if ((sidesReached.left || sidesReached.right) && this.psv.isAutorotateEnabled()) {
             this.__reverseAutorotate(sidesReached.left, sidesReached.right);
+          } else if (Math.abs(currentPosition.longitude - rangedPosition.longitude) > EPS || Math.abs(currentPosition.latitude - rangedPosition.latitude) > EPS) {
+            this.psv.dynamics.position.setValue(rangedPosition);
           }
 
           break;
@@ -142,12 +156,13 @@
           break;
 
         case photoSphereViewer.CONSTANTS.EVENTS.ZOOM_UPDATED:
-          var currentPosition = this.psv.getPosition();
+          currentPosition = this.psv.getPosition();
 
-          var _this$applyRanges2 = this.applyRanges(currentPosition),
-              rangedPosition = _this$applyRanges2.rangedPosition;
+          var _this$applyRanges3 = this.applyRanges(currentPosition);
 
-          if (currentPosition.longitude !== rangedPosition.longitude || currentPosition.latitude !== rangedPosition.latitude) {
+          rangedPosition = _this$applyRanges3.rangedPosition;
+
+          if (Math.abs(currentPosition.longitude - rangedPosition.longitude) > EPS || Math.abs(currentPosition.latitude - rangedPosition.latitude) > EPS) {
             this.psv.rotate(rangedPosition);
           }
 

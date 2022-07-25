@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.4
+* Photo Sphere Viewer 4.6.5
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -11,7 +11,7 @@
 })(this, (function (exports, THREE, photoSphereViewer, cubemap) { 'use strict';
 
   function _extends() {
-    _extends = Object.assign || function (target) {
+    _extends = Object.assign ? Object.assign.bind() : function (target) {
       for (var i = 1; i < arguments.length; i++) {
         var source = arguments[i];
 
@@ -24,7 +24,6 @@
 
       return target;
     };
-
     return _extends.apply(this, arguments);
   }
 
@@ -36,11 +35,10 @@
   }
 
   function _setPrototypeOf(o, p) {
-    _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
+    _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function _setPrototypeOf(o, p) {
       o.__proto__ = p;
       return o;
     };
-
     return _setPrototypeOf(o, p);
   }
 

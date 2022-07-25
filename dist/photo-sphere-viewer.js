@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.4
+* Photo Sphere Viewer 4.6.5
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -187,7 +187,7 @@
   }
 
   function _extends() {
-    _extends = Object.assign || function (target) {
+    _extends = Object.assign ? Object.assign.bind() : function (target) {
       for (var i = 1; i < arguments.length; i++) {
         var source = arguments[i];
 
@@ -200,7 +200,6 @@
 
       return target;
     };
-
     return _extends.apply(this, arguments);
   }
 
@@ -212,11 +211,10 @@
   }
 
   function _setPrototypeOf(o, p) {
-    _setPrototypeOf = Object.setPrototypeOf || function _setPrototypeOf(o, p) {
+    _setPrototypeOf = Object.setPrototypeOf ? Object.setPrototypeOf.bind() : function _setPrototypeOf(o, p) {
       o.__proto__ = p;
       return o;
     };
-
     return _setPrototypeOf(o, p);
   }
 
@@ -819,14 +817,15 @@
         resolve(initial);
       };
 
+      window.addEventListener('mousedown', listenerMouse, false);
+      window.addEventListener('touchstart', listenerTouch, false);
+      var listenerTimeoutId = setTimeout(listenerTimeout, 10000);
+
       clear = function clear() {
         window.removeEventListener('mousedown', listenerMouse);
         window.removeEventListener('touchstart', listenerTouch);
+        clearTimeout(listenerTimeoutId);
       };
-
-      window.addEventListener('mousedown', listenerMouse, false);
-      window.addEventListener('touchstart', listenerTouch, false);
-      setTimeout(listenerTimeout, 10000);
     });
     return {
       initial: initial,
@@ -867,7 +866,7 @@
       ctx.fillRect(0, 0, 1, 1);
 
       try {
-        if (ctx.getImageData(0, 0, 1, 1).data[0] === 255) {
+        if (ctx.getImageData(0, 0, 1, 1).data[0] > 0) {
           return canvas.width;
         }
       } catch (e) {// continue
@@ -8865,19 +8864,19 @@
 
       this.stopKeyboardControl();
       this.exitFullscreen();
+      each(this.plugins, function (plugin) {
+        return plugin.destroy();
+      });
+      delete this.plugins;
+      this.children.slice().forEach(function (child) {
+        return child.destroy();
+      });
+      this.children.length = 0;
       this.eventsHandler.destroy();
       this.renderer.destroy();
       this.textureLoader.destroy();
       this.dataHelper.destroy();
       this.adapter.destroy();
-      this.children.slice().forEach(function (child) {
-        return child.destroy();
-      });
-      this.children.length = 0;
-      each(this.plugins, function (plugin) {
-        return plugin.destroy();
-      });
-      delete this.plugins;
       this.parent.removeChild(this.container);
       delete this.parent[VIEWER_DATA];
       delete this.parent;
@@ -8888,6 +8887,7 @@
       delete this.tooltip;
       delete this.notification;
       delete this.overlay;
+      delete this.dynamics;
       delete this.config;
     }
     /**
