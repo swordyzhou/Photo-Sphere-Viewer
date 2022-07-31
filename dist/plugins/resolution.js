@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.5
+* Photo Sphere Viewer 4.7.0
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -57,40 +57,6 @@
      */
     RESOLUTION_CHANGED: 'resolution-changed'
   };
-
-  /**
-   * @summary Returns deep equality between objects
-   * {@link https://gist.github.com/egardner/efd34f270cc33db67c0246e837689cb9}
-   * @param obj1
-   * @param obj2
-   * @return {boolean}
-   * @private
-   */
-  function deepEqual(obj1, obj2) {
-    if (obj1 === obj2) {
-      return true;
-    } else if (isObject(obj1) && isObject(obj2)) {
-      if (Object.keys(obj1).length !== Object.keys(obj2).length) {
-        return false;
-      }
-
-      for (var _i = 0, _Object$keys = Object.keys(obj1); _i < _Object$keys.length; _i++) {
-        var prop = _Object$keys[_i];
-
-        if (!deepEqual(obj1[prop], obj2[prop])) {
-          return false;
-        }
-      }
-
-      return true;
-    } else {
-      return false;
-    }
-  }
-
-  function isObject(obj) {
-    return typeof obj === 'object' && obj != null;
-  }
 
   /**
    * @typedef {Object} PSV.plugins.ResolutionPlugin.Resolution
@@ -282,7 +248,7 @@
       var _this4 = this;
 
       var resolution = this.resolutions.find(function (r) {
-        return deepEqual(_this4.psv.config.panorama, r.panorama);
+        return photoSphereViewer.utils.deepEqual(_this4.psv.config.panorama, r.panorama);
       });
 
       if (this.prop.resolution !== (resolution == null ? void 0 : resolution.id)) {

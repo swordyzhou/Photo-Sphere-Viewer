@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.5
+* Photo Sphere Viewer 4.7.0
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -60,6 +60,15 @@
    */
 
   var EVENTS = {
+    /**
+     * @event marker-visibility
+     * @memberof PSV.plugins.MarkersPlugin
+     * @summary Triggered when the visibility of a marker changes
+     * @param {PSV.plugins.MarkersPlugin.Marker} marker
+     * @param {boolean} visible
+     */
+    MARKER_VISIBILITY: 'marker-visibility',
+
     /**
      * @event goto-marker-done
      * @memberof PSV.plugins.MarkersPlugin
@@ -140,6 +149,18 @@
      * @summary Triggered when the markers are shown
      */
     SHOW_MARKERS: 'show-markers'
+  };
+  /**
+   * @summary Types of tooltip events
+   * @memberOf PSV.plugins.MarkersPlugin
+   * @enum {string}
+   * @constant
+   * @private
+   */
+
+  var MARKER_TOOLTIP_TRIGGER = {
+    click: 'click',
+    hover: 'hover'
   };
   /**
    * @summary Namespace for SVG creation
@@ -436,6 +457,8 @@
        * @protected
        * @property {boolean} dynamicSize
        * @property {PSV.Point} anchor
+       * @property {boolean} visible - actually visible in the view
+       * @property {boolean} staticTooltip - the tooltip must always be shown
        * @property {PSV.Position} position - position in spherical coordinates
        * @property {PSV.Point} position2D - position in viewer coordinates
        * @property {external:THREE.Vector3[]} positions3D - positions in 3D space
@@ -447,6 +470,8 @@
       this.props = {
         dynamicSize: false,
         anchor: null,
+        visible: false,
+        staticTooltip: false,
         position: null,
         position2D: null,
         positions3D: null,
@@ -622,11 +647,9 @@
     ;
 
     _proto.getListContent = function getListContent() {
-      var _this$config$tooltip;
-
       if (this.config.listContent) {
         return this.config.listContent;
-      } else if ((_this$config$tooltip = this.config.tooltip) != null && _this$config$tooltip.content) {
+      } else if (this.config.tooltip.content) {
         return this.config.tooltip.content;
       } else if (this.config.html) {
         return this.config.html;
@@ -641,14 +664,10 @@
     ;
 
     _proto.showTooltip = function showTooltip(mousePosition) {
-      var _this$config$tooltip2;
-
-      if (this.visible && (_this$config$tooltip2 = this.config.tooltip) != null && _this$config$tooltip2.content && this.props.position2D) {
-        var config = {
-          content: this.config.tooltip.content,
-          position: this.config.tooltip.position,
+      if (this.props.visible && this.config.tooltip.content && this.props.position2D) {
+        var config = _extends({}, this.config.tooltip, {
           data: this
-        };
+        });
 
         if (this.isPoly()) {
           var viewerPos = photoSphereViewer.utils.getPosition(this.psv.container);
@@ -682,6 +701,16 @@
       }
     }
     /**
+     * @summary Recompute the position of the tooltip
+     */
+    ;
+
+    _proto.refreshTooltip = function refreshTooltip() {
+      if (this.tooltip) {
+        this.showTooltip();
+      }
+    }
+    /**
      * @summary Hides the tooltip of this marker
      */
     ;
@@ -712,6 +741,14 @@
         this.config.tooltip = {
           content: this.config.tooltip
         };
+      }
+
+      if (!this.config.tooltip) {
+        this.config.tooltip = {};
+      }
+
+      if (!this.config.tooltip.trigger) {
+        this.config.tooltip.trigger = MARKER_TOOLTIP_TRIGGER.hover;
       }
 
       this.data = this.config.data;
@@ -1533,8 +1570,11 @@
     ;
 
     _proto.toggleAllTooltips = function toggleAllTooltips() {
-      this.prop.showAllTooltips = !this.prop.showAllTooltips;
-      this.renderMarkers();
+      if (this.prop.showAllTooltips) {
+        this.hideAllTooltips();
+      } else {
+        this.showAllTooltips();
+      }
     }
     /**
      * @summary Displays all tooltips
@@ -1543,7 +1583,10 @@
 
     _proto.showAllTooltips = function showAllTooltips() {
       this.prop.showAllTooltips = true;
-      this.renderMarkers();
+      photoSphereViewer.utils.each(this.markers, function (marker) {
+        marker.props.staticTooltip = true;
+        marker.showTooltip();
+      });
     }
     /**
      * @summary Hides all tooltips
@@ -1552,7 +1595,10 @@
 
     _proto.hideAllTooltips = function hideAllTooltips() {
       this.prop.showAllTooltips = false;
-      this.renderMarkers();
+      photoSphereViewer.utils.each(this.markers, function (marker) {
+        marker.props.staticTooltip = false;
+        marker.hideTooltip();
+      });
     }
     /**
      * @summary Returns the total number of markers
@@ -1834,6 +1880,28 @@
       this.toggleMarker(markerId, true);
     }
     /**
+     * @summary Forces the display of the tooltip
+     * @param {string} markerId
+     */
+    ;
+
+    _proto.showMarkerTooltip = function showMarkerTooltip(markerId) {
+      var marker = this.getMarker(markerId);
+      marker.props.staticTooltip = true;
+      marker.showTooltip();
+    }
+    /**
+     * @summary Hides the tooltip
+     * @param {string} markerId
+     */
+    ;
+
+    _proto.hideMarkerTooltip = function hideMarkerTooltip(markerId) {
+      var marker = this.getMarker(markerId);
+      marker.props.staticTooltip = false;
+      marker.hideTooltip();
+    }
+    /**
      * @summary Toggles a marker
      * @param {string} markerId
      * @param {boolean} [visible]
@@ -1942,6 +2010,7 @@
       var viewerPosition = this.psv.getPosition();
       photoSphereViewer.utils.each(this.markers, function (marker) {
         var isVisible = _this8.prop.visible && marker.visible;
+        var visibilityChanged = false;
         var position = null;
 
         if (isVisible && marker.is3d()) {
@@ -1982,16 +2051,26 @@
           }
         }
 
+        visibilityChanged = marker.props.visible !== isVisible;
+        marker.props.visible = isVisible;
         marker.props.position2D = isVisible ? position : null;
 
         if (!marker.is3d()) {
           photoSphereViewer.utils.toggleClass(marker.$el, 'psv-marker--visible', isVisible);
         }
 
-        if (isVisible && (_this8.prop.showAllTooltips || marker === _this8.prop.hoveringMarker && !marker.isPoly())) {
-          marker.showTooltip();
-        } else if (!isVisible || marker !== _this8.prop.hoveringMarker) {
+        if (!isVisible) {
           marker.hideTooltip();
+        } else if (marker.props.staticTooltip) {
+          marker.showTooltip();
+        } else if (marker.config.tooltip.trigger === MARKER_TOOLTIP_TRIGGER.click || marker === _this8.prop.hoveringMarker && !marker.isPoly()) {
+          marker.refreshTooltip();
+        } else if (marker !== _this8.prop.hoveringMarker) {
+          marker.hideTooltip();
+        }
+
+        if (visibilityChanged) {
+          _this8.trigger(EVENTS.MARKER_VISIBILITY, marker, isVisible);
         }
       });
     }
@@ -2179,7 +2258,7 @@
         this.prop.hoveringMarker = marker;
         this.trigger(EVENTS.OVER_MARKER, marker);
 
-        if (!this.prop.showAllTooltips) {
+        if (!marker.props.staticTooltip && marker.config.tooltip.trigger === MARKER_TOOLTIP_TRIGGER.hover) {
           marker.showTooltip(e);
         }
       }
@@ -2199,7 +2278,7 @@
         this.trigger(EVENTS.LEAVE_MARKER, marker);
         this.prop.hoveringMarker = null;
 
-        if (!this.prop.showAllTooltips) {
+        if (!marker.props.staticTooltip && marker.config.tooltip.trigger === MARKER_TOOLTIP_TRIGGER.hover) {
           marker.hideTooltip();
         }
       }
@@ -2232,13 +2311,13 @@
           this.prop.hoveringMarker = marker;
         }
 
-        if (!this.prop.showAllTooltips) {
+        if (!marker.props.staticTooltip) {
           marker.showTooltip(e);
         }
       } else if ((_this$prop$hoveringMa = this.prop.hoveringMarker) != null && _this$prop$hoveringMa.isPoly()) {
         this.trigger(EVENTS.LEAVE_MARKER, this.prop.hoveringMarker);
 
-        if (!this.prop.showAllTooltips) {
+        if (!this.prop.hoveringMarker.props.staticTooltip) {
           this.prop.hoveringMarker.hideTooltip();
         }
 
@@ -2267,6 +2346,17 @@
         marker = this.__getTargetMarker(data.target, true);
       }
 
+      if (this.prop.currentMarker && this.prop.currentMarker !== marker) {
+        this.trigger(EVENTS.UNSELECT_MARKER, this.prop.currentMarker);
+        this.psv.panel.hide(ID_PANEL_MARKER);
+
+        if (!this.prop.showAllTooltips && this.prop.currentMarker.config.tooltip.trigger === MARKER_TOOLTIP_TRIGGER.click) {
+          this.hideMarkerTooltip(this.prop.currentMarker);
+        }
+
+        this.prop.currentMarker = null;
+      }
+
       if (marker) {
         this.prop.currentMarker = marker;
         this.trigger(EVENTS.SELECT_MARKER, marker, {
@@ -2283,12 +2373,16 @@
 
 
         if (this.markers[marker.id]) {
-          this.showMarkerPanel(marker.id);
+          if (marker.config.tooltip.trigger === MARKER_TOOLTIP_TRIGGER.click) {
+            if (marker.tooltip) {
+              this.hideMarkerTooltip(marker);
+            } else {
+              this.showMarkerTooltip(marker);
+            }
+          } else {
+            this.showMarkerPanel(marker.id);
+          }
         }
-      } else if (this.prop.currentMarker) {
-        this.trigger(EVENTS.UNSELECT_MARKER, this.prop.currentMarker);
-        this.psv.panel.hide(ID_PANEL_MARKER);
-        this.prop.currentMarker = null;
       }
     }
     /**

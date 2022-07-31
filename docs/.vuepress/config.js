@@ -6,6 +6,16 @@ module.exports = {
   description: 'A JavaScript library to display Photo Sphere panoramas',
   head       : [
     ['link', { rel: 'icon', href: '/favicon.png' }],
+    ['script', { src: 'https://cdn.jsdelivr.net/npm/uevent@2/browser.js', defer: 'defer' }],
+    ['script', { src: 'https://cdn.jsdelivr.net/npm/three/build/three.min.js', defer: 'defer' }],
+    ['script', {
+      src  : 'https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.js',
+      defer: 'defer'
+    }],
+    ['link', {
+      rel : 'stylesheet',
+      href: 'https://cdn.jsdelivr.net/npm/photo-sphere-viewer@4/dist/photo-sphere-viewer.css'
+    }],
   ],
   themeConfig: {
     logo        : '/favicon.png',
@@ -85,6 +95,7 @@ module.exports = {
           children    : [
             'plugin-autorotate-keypoints',
             'plugin-compass',
+            ['plugin-gallery', 'GalleryPlugin (NEW)'],
             'plugin-gyroscope',
             'plugin-markers',
             'plugin-resolution',
@@ -96,17 +107,6 @@ module.exports = {
           ],
         },
       ],
-      '/demos/'  : [
-        {
-          title       : 'Demos',
-          sidebarDepth: 3,
-          collapsable : false,
-          children    : [
-            '',
-            'intro',
-          ],
-        },
-      ],
     },
   },
   plugins    : [
@@ -114,11 +114,6 @@ module.exports = {
       'ga': 'UA-28192323-3',
     }],
     ['@vuepress/back-to-top'],
+    require('./plugins/gallery'),
   ],
-  alias      : {
-    'photo-sphere-viewer'                   : path.resolve(process.cwd(), 'dist/photo-sphere-viewer.js'),
-    'photo-sphere-viewer-markers'           : path.resolve(process.cwd(), 'dist/plugins/markers.js'),
-    'photo-sphere-viewer-stylesheet'        : path.resolve(process.cwd(), 'dist/photo-sphere-viewer.css'),
-    'photo-sphere-viewer-markers-stylesheet': path.resolve(process.cwd(), 'dist/plugins/markers.css'),
-  },
 };

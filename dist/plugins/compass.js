@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.5
+* Photo Sphere Viewer 4.7.0
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -125,7 +125,7 @@
        */
 
       _this.container = document.createElement('div');
-      photoSphereViewer.utils.addClasses(_this.container, "psv-compass psv-compass--" + _this.config.position.join('-'));
+      _this.container.className = "psv-compass psv-compass--" + _this.config.position.join('-');
       _this.container.innerHTML = _this.config.backgroundSvg;
       _this.container.style.width = _this.config.size;
       _this.container.style.height = _this.config.size;

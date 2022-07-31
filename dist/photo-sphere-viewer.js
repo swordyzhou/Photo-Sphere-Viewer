@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.6.5
+* Photo Sphere Viewer 4.7.0
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -1493,6 +1493,40 @@
 
     return undefined;
   }
+  /**
+   * @summary Returns deep equality between objects
+   * {@link https://gist.github.com/egardner/efd34f270cc33db67c0246e837689cb9}
+   * @param obj1
+   * @param obj2
+   * @return {boolean}
+   * @private
+   */
+
+  function deepEqual(obj1, obj2) {
+    if (obj1 === obj2) {
+      return true;
+    } else if (isObject(obj1) && isObject(obj2)) {
+      if (Object.keys(obj1).length !== Object.keys(obj2).length) {
+        return false;
+      }
+
+      for (var _i2 = 0, _Object$keys = Object.keys(obj1); _i2 < _Object$keys.length; _i2++) {
+        var prop = _Object$keys[_i2];
+
+        if (!deepEqual(obj1[prop], obj2[prop])) {
+          return false;
+        }
+      }
+
+      return true;
+    } else {
+      return false;
+    }
+  }
+
+  function isObject(obj) {
+    return typeof obj === 'object' && obj != null;
+  }
 
   /**
    * @summary Returns the plugin constructor from the imported object
@@ -2779,6 +2813,7 @@
     each: each,
     isNil: isNil,
     firstNonNull: firstNonNull,
+    deepEqual: deepEqual,
     pluginInterop: pluginInterop,
     getAbortError: getAbortError,
     isAbortError: isAbortError,
@@ -5291,7 +5326,7 @@
     function Navbar(psv) {
       var _this;
 
-      _this = _AbstractComponent.call(this, psv, 'psv-navbar') || this;
+      _this = _AbstractComponent.call(this, psv, 'psv-navbar psv--capture-event') || this;
       /**
        * @summary List of buttons of the navbar
        * @member {PSV.buttons.AbstractButton[]}
@@ -5953,7 +5988,7 @@
     function Panel(psv) {
       var _this;
 
-      _this = _AbstractComponent.call(this, psv, 'psv-panel') || this;
+      _this = _AbstractComponent.call(this, psv, 'psv-panel psv--capture-event') || this;
       /**
        * @override
        * @property {string} contentId
@@ -6799,7 +6834,7 @@
       /* eslint-enable */
 
 
-      if (!getClosest(evt.target, '.psv-navbar') && !getClosest(evt.target, '.psv-panel')) {
+      if (!getClosest(evt.target, '.psv--capture-event')) {
         /* eslint-disable */
         switch (evt.type) {
           // @formatter:off
@@ -8240,6 +8275,7 @@
         width: 0,
         height: 0,
         pos: '',
+        config: null,
         data: null
       });
       /**
@@ -8345,6 +8381,8 @@
       this.prop.data = config.data;
       this.prop.state = STATE.SHOWING;
       this.psv.trigger(EVENTS.SHOW_TOOLTIP, this.prop.data, this);
+
+      this.__waitImages();
     }
     /**
      * @summary Moves the tooltip to a new position
@@ -8359,6 +8397,7 @@
         throw new PSVError('Uninitialized tooltip cannot be moved');
       }
 
+      this.config = config;
       var t = this.container;
       var a = this.arrow; // compute size
 
@@ -8510,6 +8549,37 @@
 
           break;
         // no default
+      }
+    }
+    /**
+     * @summary If the tooltip contains images, recompute its size once they are loaded
+     * @private
+     */
+    ;
+
+    _proto.__waitImages = function __waitImages() {
+      var _this2 = this;
+
+      var images = this.content.querySelectorAll('img');
+
+      if (images.length > 0) {
+        var promises = [];
+        images.forEach(function (image) {
+          promises.push(new Promise(function (resolve) {
+            image.onload = resolve;
+            image.onerror = resolve;
+          }));
+        });
+        Promise.all(promises).then(function () {
+          if (_this2.prop.state === STATE.SHOWING || _this2.prop.state === STATE.READY) {
+            var rect = _this2.container.getBoundingClientRect();
+
+            _this2.prop.width = rect.right - rect.left;
+            _this2.prop.height = rect.bottom - rect.top;
+
+            _this2.move(_this2.config);
+          }
+        });
       }
     };
 
