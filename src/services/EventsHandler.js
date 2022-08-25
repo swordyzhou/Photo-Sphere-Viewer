@@ -66,6 +66,7 @@ export class EventsHandler extends AbstractService {
     this.state = {
       moveThreshold    : MOVE_THRESHOLD * SYSTEM.pixelRatio,
       keyboardEnabled  : false,
+      startMove        : false,
       moving           : false,
       zooming          : false,
       startMouseX      : 0,
@@ -549,18 +550,11 @@ export class EventsHandler extends AbstractService {
    * @private
    */
   __startMove(evt) {
-    this.psv.__stopAll()
-      .then(() => {
-        this.state.mouseX = evt.clientX;
-        this.state.mouseY = evt.clientY;
-        this.state.startMouseX = this.state.mouseX;
-        this.state.startMouseY = this.state.mouseY;
-        this.state.moving = true;
-        this.state.zooming = false;
-
-        this.state.mouseHistory.length = 0;
-        this.__logMouseMove(evt);
-      });
+    this.state.startMove = true;
+    this.state.mouseX = evt.clientX;
+    this.state.mouseY = evt.clientY;
+    this.state.startMouseX = this.state.mouseX;
+    this.state.startMouseY = this.state.mouseY;
   }
 
   /**
@@ -569,6 +563,7 @@ export class EventsHandler extends AbstractService {
    * @private
    */
   __startMoveZoom(evt) {
+    this.state.startMove = false;
     this.psv.__stopAll()
       .then(() => {
         const p1 = { x: evt.touches[0].clientX, y: evt.touches[0].clientY };
@@ -593,30 +588,21 @@ export class EventsHandler extends AbstractService {
   __stopMove(evt) {
     this.psv.resetIdleTimer();
 
-    if (!getClosest(evt.target, '.psv-container')) {
-      this.state.moving = false;
-      this.state.mouseHistory.length = 0;
-      return;
-    }
-
-    if (this.state.moving) {
+    if (getClosest(evt.target, '.psv-container')) {
       // move threshold to trigger a click
-      if (Math.abs(evt.clientX - this.state.startMouseX) < this.state.moveThreshold
-        && Math.abs(evt.clientY - this.state.startMouseY) < this.state.moveThreshold) {
+      if (this.state.startMove) {
         this.__click(evt);
-        this.state.moving = false;
       }
       // inertia animation
-      else if (this.config.moveInertia) {
+      else if (this.state.moving && this.config.moveInertia) {
         this.__logMouseMove(evt);
         this.__stopMoveInertia(evt);
       }
-      else {
-        this.state.moving = false;
-      }
-
-      this.state.mouseHistory.length = 0;
     }
+
+    this.state.moving = false;
+    this.state.startMove = false;
+    this.state.mouseHistory.length = 0;
   }
 
   /**
@@ -737,6 +723,19 @@ export class EventsHandler extends AbstractService {
    * @private
    */
   __move(evt, log) {
+    if (this.state.startMove
+      && (Math.abs(evt.clientX - this.state.startMouseX) >= this.state.moveThreshold
+        || Math.abs(evt.clientY - this.state.startMouseY) >= this.state.moveThreshold)) {
+      this.psv.__stopAll();
+
+      this.state.startMove = false;
+      this.state.moving = true;
+      this.state.zooming = false;
+
+      this.state.mouseHistory.length = 0;
+      this.__logMouseMove(evt);
+    }
+
     if (this.state.moving) {
       const x = evt.clientX;
       const y = evt.clientY;
