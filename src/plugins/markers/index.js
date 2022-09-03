@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { Vector3 } from 'three';
 import { AbstractPlugin, CONSTANTS, DEFAULTS, PSVError, registerButton, utils } from '../..';
 import {
   EVENTS,
@@ -127,12 +127,12 @@ export class MarkersPlugin extends AbstractPlugin {
     this.psv.on(CONSTANTS.EVENTS.RENDER, this);
     this.psv.on(CONSTANTS.EVENTS.CONFIG_CHANGED, this);
 
-    if (this.config.markers) {
-      this.psv.once(CONSTANTS.EVENTS.READY, () => {
+    this.psv.once(CONSTANTS.EVENTS.READY, () => {
+      if (this.config.markers) {
         this.setMarkers(this.config.markers);
         delete this.config.markers;
-      });
-    }
+      }
+    });
   }
 
   /**
@@ -685,7 +685,7 @@ export class MarkersPlugin extends AbstractPlugin {
    * @private
    */
   __updateMarkerSize(marker) {
-    utils.addClasses(marker.$el, 'psv-marker--transparent');
+    marker.$el.classList.add('psv-marker--transparent');
 
     let transform;
     if (marker.isSvg()) {
@@ -701,7 +701,7 @@ export class MarkersPlugin extends AbstractPlugin {
     marker.props.width = rect.width;
     marker.props.height = rect.height;
 
-    utils.removeClasses(marker.$el, 'psv-marker--transparent');
+    marker.$el.classList.remove('psv-marker--transparent');
 
     if (transform) {
       if (marker.isSvg()) {
@@ -802,12 +802,12 @@ export class MarkersPlugin extends AbstractPlugin {
    */
   __getPolyIntermediaryPoint(P1, P2) {
     const C = this.psv.prop.direction.clone().normalize();
-    const N = new THREE.Vector3().crossVectors(P1, P2).normalize();
-    const V = new THREE.Vector3().crossVectors(N, P1).normalize();
+    const N = new Vector3().crossVectors(P1, P2).normalize();
+    const V = new Vector3().crossVectors(N, P1).normalize();
     const X = P1.clone().multiplyScalar(-C.dot(V));
     const Y = V.clone().multiplyScalar(C.dot(P1));
-    const H = new THREE.Vector3().addVectors(X, Y).normalize();
-    const a = new THREE.Vector3().crossVectors(H, C);
+    const H = new Vector3().addVectors(X, Y).normalize();
+    const a = new Vector3().crossVectors(H, C);
     return H.applyAxisAngle(a, 0.01).multiplyScalar(CONSTANTS.SPHERE_RADIUS);
   }
 

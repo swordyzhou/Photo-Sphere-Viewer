@@ -18,25 +18,13 @@
 <script src="../dist/plugins/visible-range.js"></script>
 
 <script>
-  const ranges = {
-    longitudeRange: [-Math.PI / 2, Math.PI / 2],
-    latitudeRange : [-Math.PI / 3, Math.PI / 3],
-  };
-
   const viewer = new PhotoSphereViewer.Viewer({
-    container : 'photosphere',
-    panorama  : 'sphere_cropped.jpg',
-    caption   : 'Parc national du Mercantour <b>&copy; Damien Sorel</b>',
-    loadingImg: 'assets/photosphere-logo.gif',
-    panoData  : {
-      fullWidth: 6000,
-      fullHeight: 3000,
-      croppedX: 700,
-      croppedY: 700,
-      croppedWidth: 4000,
-      croppedHeight: 1260,
-    },
-    navbar    : [
+    container     : 'photosphere',
+    panorama      : 'https://photo-sphere-viewer-data.netlify.app/assets/sphere-cropped.jpg', // this file has XMP data
+    caption       : 'Parc national du Mercantour <b>&copy; Damien Sorel</b>',
+    loadingImg    : 'assets/photosphere-logo.gif',
+    defaultZoomLvl: 30,
+    navbar        : [
       'autorotate',
       {
         content  : 'Clear range',
@@ -47,11 +35,11 @@
         },
       },
       {
-        content  : 'Set range',
+        content  : 'Set custom range',
         className: 'custom-button',
         onClick  : () => {
-          visibleRange.setLongitudeRange(ranges.longitudeRange);
-          visibleRange.setLatitudeRange(ranges.latitudeRange);
+          visibleRange.setLongitudeRange([-Math.PI / 2, Math.PI / 2]);
+          visibleRange.setLatitudeRange([-Math.PI / 3, Math.PI / 3]);
         },
       },
       {
@@ -64,8 +52,10 @@
       'caption',
       'fullscreen',
     ],
-    plugins   : [
-      [PhotoSphereViewer.VisibleRangePlugin, ranges],
+    plugins       : [
+      [PhotoSphereViewer.VisibleRangePlugin, {
+        usePanoData: true,
+      }],
     ],
   });
 

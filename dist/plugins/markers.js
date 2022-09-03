@@ -1,14 +1,14 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
 */
 (function (global, factory) {
-  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer'), require('uevent')) :
-  typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer', 'uevent'], factory) :
+  typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
+  typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.MarkersPlugin = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -209,64 +209,6 @@
       return "\n    <li data-" + dataKey + "=\"" + marker.config.id + "\" class=\"psv-panel-menu-item\" tabindex=\"0\">\n      " + (marker.type === 'image' ? "<span class=\"psv-panel-menu-item-icon\"><img src=\"" + marker.config.image + "\"/></span>" : '') + "\n      <span class=\"psv-panel-menu-item-label\">" + marker.getListContent() + "</span>\n    </li>\n    ";
     }).join('') + "\n  </ul>\n</div>\n";
   };
-
-  /**
-   * @summary Ensures that a number is in a given interval
-   * @memberOf PSV.utils
-   * @param {number} x
-   * @param {number} min
-   * @param {number} max
-   * @returns {number}
-   */
-  /**
-   * @summary Compute the shortest offset between two longitudes
-   * @memberOf PSV.utils
-   * @param {number} from
-   * @param {number} to
-   * @returns {number}
-   */
-
-  function getShortestArc(from, to) {
-    var tCandidates = [0, // direct
-    Math.PI * 2, // clock-wise cross zero
-    -Math.PI * 2 // counter-clock-wise cross zero
-    ];
-    return tCandidates.reduce(function (value, candidate) {
-      var newCandidate = to - from + candidate;
-      return Math.abs(newCandidate) < Math.abs(value) ? newCandidate : value;
-    }, Infinity);
-  }
-
-  /**
-   * @summary Custom error used in the lib
-   * @param {string} message
-   * @constructor
-   * @memberOf PSV
-   */
-  function PSVError(message) {
-    this.message = message; // Use V8's native method if available, otherwise fallback
-
-    if ('captureStackTrace' in Error) {
-      Error.captureStackTrace(this, PSVError);
-    } else {
-      this.stack = new Error().stack;
-    }
-  }
-
-  PSVError.prototype = Object.create(Error.prototype);
-  PSVError.prototype.name = 'PSVError';
-  PSVError.prototype.constructor = PSVError;
-
-  /**
-   * @summary Displays a warning in the console
-   * @memberOf PSV.utils
-   * @param {string} message
-   */
-
-  function logWarn(message) {
-    console.warn("PhotoSphereViewer: " + message);
-  }
-  new THREE.Quaternion();
 
   /**
    * Returns intermediary point between two points on the sphere
@@ -488,7 +430,7 @@
       this.loader = null;
 
       if (this.is3d()) {
-        this.loader = new THREE.TextureLoader();
+        this.loader = new three.TextureLoader();
 
         if (this.psv.config.withCredentials) {
           this.loader.setWithCredentials(true);
@@ -507,7 +449,8 @@
       } else if (this.isPolyline()) {
         this.$el = document.createElementNS(SVG_NS, 'polyline');
       } else if (this.isSvg()) {
-        this.$el = document.createElementNS(SVG_NS, this.type);
+        var svgType = this.type === 'square' ? 'rect' : this.type;
+        this.$el = document.createElementNS(SVG_NS, svgType);
       }
 
       if (!this.is3d()) {
@@ -629,8 +572,8 @@
 
       if (Array.isArray(this.config.scale.longitude)) {
         var _bounds = this.config.scale.longitude;
-        var halfFov = THREE.MathUtils.degToRad(this.psv.prop.hFov) / 2;
-        var arc = Math.abs(getShortestArc(this.props.position.longitude, position.longitude));
+        var halfFov = three.MathUtils.degToRad(this.psv.prop.hFov) / 2;
+        var arc = Math.abs(photoSphereViewer.utils.getShortestArc(this.props.position.longitude, position.longitude));
         scale *= _bounds[1] + (_bounds[0] - _bounds[1]) * photoSphereViewer.CONSTANTS.EASINGS.outQuad(Math.max(0, (halfFov - arc) / halfFov));
       }
 
@@ -759,7 +702,7 @@
 
         // reset CSS class
         if (this.isNormal()) {
-          this.$el.setAttribute('class', 'psv-marker psv-marker--normal');
+          this.$el.className = 'psv-marker psv-marker--normal';
         } else {
           this.$el.setAttribute('class', 'psv-marker psv-marker--svg');
         } // add CSS classes
@@ -770,11 +713,11 @@
         }
 
         if (this.config.tooltip) {
-          photoSphereViewer.utils.addClasses(this.$el, 'psv-marker--has-tooltip');
+          this.$el.classList.add('psv-marker--has-tooltip');
         }
 
         if (this.config.content) {
-          photoSphereViewer.utils.addClasses(this.$el, 'psv-marler--has-content');
+          this.$el.classList.add('psv-marler--has-content');
         } // apply style
 
 
@@ -790,7 +733,7 @@
 
       if (this.config.scale) {
         if (typeof this.config.scale === 'number') {
-          logWarn('Single value marker scale is deprecated, please use an array of two values.');
+          photoSphereViewer.utils.logWarn('Single value marker scale is deprecated, please use an array of two values.');
           this.config.scale = {
             zoom: [0, this.config.scale]
           };
@@ -1040,15 +983,15 @@
           if (!this.$el) {
             var _this$config$opacity2, _mesh$userData;
 
-            var material = new THREE.MeshBasicMaterial({
+            var material = new three.MeshBasicMaterial({
               transparent: true,
               opacity: (_this$config$opacity2 = this.config.opacity) != null ? _this$config$opacity2 : 1,
               depthTest: false
             });
-            var geometry = new THREE.PlaneGeometry(1, 1);
-            var mesh = new THREE.Mesh(geometry, material);
+            var geometry = new three.PlaneGeometry(1, 1);
+            var mesh = new three.Mesh(geometry, material);
             mesh.userData = (_mesh$userData = {}, _mesh$userData[MARKER_DATA] = this, _mesh$userData);
-            this.$el = new THREE.Group().add(mesh); // overwrite the visible property to be tied to the Marker instance
+            this.$el = new three.Group().add(mesh); // overwrite the visible property to be tied to the Marker instance
             // and do it without context bleed
 
             Object.defineProperty(this.$el, 'visible', {
@@ -1445,14 +1388,13 @@
       this.psv.on(photoSphereViewer.CONSTANTS.EVENTS.DOUBLE_CLICK, this);
       this.psv.on(photoSphereViewer.CONSTANTS.EVENTS.RENDER, this);
       this.psv.on(photoSphereViewer.CONSTANTS.EVENTS.CONFIG_CHANGED, this);
-
-      if (this.config.markers) {
-        this.psv.once(photoSphereViewer.CONSTANTS.EVENTS.READY, function () {
+      this.psv.once(photoSphereViewer.CONSTANTS.EVENTS.READY, function () {
+        if (_this2.config.markers) {
           _this2.setMarkers(_this2.config.markers);
 
           delete _this2.config.markers;
-        });
-      }
+        }
+      });
     }
     /**
      * @package
@@ -2097,7 +2039,7 @@
     ;
 
     _proto.__updateMarkerSize = function __updateMarkerSize(marker) {
-      photoSphereViewer.utils.addClasses(marker.$el, 'psv-marker--transparent');
+      marker.$el.classList.add('psv-marker--transparent');
       var transform;
 
       if (marker.isSvg()) {
@@ -2111,7 +2053,7 @@
       var rect = marker.$el.getBoundingClientRect();
       marker.props.width = rect.width;
       marker.props.height = rect.height;
-      photoSphereViewer.utils.removeClasses(marker.$el, 'psv-marker--transparent');
+      marker.$el.classList.remove('psv-marker--transparent');
 
       if (transform) {
         if (marker.isSvg()) {
@@ -2207,12 +2149,12 @@
 
     _proto.__getPolyIntermediaryPoint = function __getPolyIntermediaryPoint(P1, P2) {
       var C = this.psv.prop.direction.clone().normalize();
-      var N = new THREE.Vector3().crossVectors(P1, P2).normalize();
-      var V = new THREE.Vector3().crossVectors(N, P1).normalize();
+      var N = new three.Vector3().crossVectors(P1, P2).normalize();
+      var V = new three.Vector3().crossVectors(N, P1).normalize();
       var X = P1.clone().multiplyScalar(-C.dot(V));
       var Y = V.clone().multiplyScalar(C.dot(P1));
-      var H = new THREE.Vector3().addVectors(X, Y).normalize();
-      var a = new THREE.Vector3().crossVectors(H, C);
+      var H = new three.Vector3().addVectors(X, Y).normalize();
+      var a = new three.Vector3().crossVectors(H, C);
       return H.applyAxisAngle(a, 0.01).multiplyScalar(photoSphereViewer.CONSTANTS.SPHERE_RADIUS);
     }
     /**

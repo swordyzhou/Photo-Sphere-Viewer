@@ -43,7 +43,7 @@ const viewer = new PhotoSphereViewer.Viewer({
 
 ## Example
 
-<iframe style="width: 100%; height: 500px;" src="//jsfiddle.net/mistic100/6hj7rbew/embedded/result,js,html/dark" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
+<iframe style="width: 100%; height: 500px;" src="//jsfiddle.net/mistic100/6hj7rbew/embedded/result,js/dark" allowfullscreen="allowfullscreen" frameborder="0"></iframe>
 
 
 ## Configuration
@@ -59,6 +59,12 @@ The list of items, see bellow.
 - default: `false`
 
 Displays the gallery when loading the first panorama. The user will be able to toggle the gallery with the navbar button.
+
+#### `thumbnailSize`
+- type: `{ width: number, height: number }`
+- default: `{ width: 200, height: 100 }`
+
+Size of the thumbnails.
 
 ### Items
 

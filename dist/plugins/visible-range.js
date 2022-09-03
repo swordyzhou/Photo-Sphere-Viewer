@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.VisibleRangePlugin = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -244,14 +244,14 @@
     _proto.getPanoLatitudeRange = function getPanoLatitudeRange() {
       var p = this.psv.prop.panoData;
 
-      if (p.croppedHeight === p.fullHeight && p.croppedY === 0) {
+      if (p.croppedHeight === p.fullHeight) {
         return null;
       } else {
         var latitude = function latitude(y) {
           return Math.PI * (1 - y / p.fullHeight) - Math.PI / 2;
         };
 
-        return [latitude(p.croppedY), latitude(p.croppedY + p.croppedHeight)];
+        return [latitude(p.croppedY + p.croppedHeight), latitude(p.croppedY)];
       }
     }
     /**
@@ -264,7 +264,7 @@
     _proto.getPanoLongitudeRange = function getPanoLongitudeRange() {
       var p = this.psv.prop.panoData;
 
-      if (p.croppedWidth === p.fullWidth && p.croppedX === 0) {
+      if (p.croppedWidth === p.fullWidth) {
         return null;
       } else {
         var longitude = function longitude(x) {
@@ -293,7 +293,7 @@
 
       if (this.config.longitudeRange) {
         range = photoSphereViewer.utils.clone(this.config.longitudeRange);
-        offset = THREE.MathUtils.degToRad(this.psv.prop.hFov) / 2;
+        offset = three.MathUtils.degToRad(this.psv.prop.hFov) / 2;
         range[0] = photoSphereViewer.utils.parseAngle(range[0] + offset);
         range[1] = photoSphereViewer.utils.parseAngle(range[1] - offset);
 
@@ -320,9 +320,14 @@
 
       if (this.config.latitudeRange) {
         range = photoSphereViewer.utils.clone(this.config.latitudeRange);
-        offset = THREE.MathUtils.degToRad(this.psv.prop.vFov) / 2;
-        range[0] = photoSphereViewer.utils.parseAngle(Math.min(range[0] + offset, range[1]), true);
-        range[1] = photoSphereViewer.utils.parseAngle(Math.max(range[1] - offset, range[0]), true);
+        offset = three.MathUtils.degToRad(this.psv.prop.vFov) / 2;
+        range[0] = photoSphereViewer.utils.parseAngle(range[0] + offset, true);
+        range[1] = photoSphereViewer.utils.parseAngle(range[1] - offset, true); // for very a narrow images, lock the latitude to the center
+
+        if (range[0] > range[1]) {
+          range[0] = (range[0] + range[1]) / 2;
+          range[1] = range[0];
+        }
 
         if (position.latitude < range[0]) {
           rangedPosition.latitude = range[0];

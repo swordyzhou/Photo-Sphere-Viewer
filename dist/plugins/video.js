@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.VideoPlugin = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -1201,7 +1201,7 @@
 
       var workPoints = [keypoints[Math.max(0, k1 - 1)].position, keypoints[k1].position, keypoints[k2].position, keypoints[Math.min(l, k2 + 1)].position]; // apply offsets to avoid crossing the origin
 
-      var workVectors = [new THREE.Vector2(workPoints[0][0], workPoints[0][1])];
+      var workVectors = [new three.Vector2(workPoints[0][0], workPoints[0][1])];
       var k = 0;
 
       for (var _i = 1; _i <= 3; _i++) {
@@ -1221,10 +1221,10 @@
           k = 0;
         }
 
-        workVectors.push(new THREE.Vector2(workPoints[_i][0] + k * 2 * Math.PI, workPoints[_i][1]));
+        workVectors.push(new three.Vector2(workPoints[_i][0] + k * 2 * Math.PI, workPoints[_i][1]));
       }
 
-      this.autorotate.curve = new THREE.SplineCurve(workVectors);
+      this.autorotate.curve = new three.SplineCurve(workVectors);
       this.autorotate.start = keypoints[k1];
       this.autorotate.end = keypoints[k2]; // debugCurve(this.markers, this.autorotate.curve.getPoints(16 * 3).map(p => ([p.x, p.y])), 16);
     };

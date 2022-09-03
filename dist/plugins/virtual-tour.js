@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.VirtualTourPlugin = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -383,7 +383,7 @@
    */
 
   var _ref = function () {
-    var loader = new THREE.ObjectLoader();
+    var loader = new three.ObjectLoader();
     var geometries = loader.parseGeometries([arrowGeometryJson, arrowOutlineGeometryJson]);
     var arrow = geometries[arrowGeometryJson.uuid];
     var arrowOutline = geometries[arrowOutlineGeometryJson.uuid];
@@ -771,8 +771,8 @@
       _this.arrowsGroup = null;
 
       if (_this.is3D()) {
-        _this.arrowsGroup = new THREE.Group();
-        var localLight = new THREE.PointLight(0xffffff, 1, 0);
+        _this.arrowsGroup = new three.Group();
+        var localLight = new three.PointLight(0xffffff, 1, 0);
         localLight.position.set(0, _this.config.arrowPosition === 'bottom' ? 2 : -2, 0);
 
         _this.arrowsGroup.add(localLight);
@@ -788,7 +788,8 @@
     var _proto = VirtualTourPlugin.prototype;
 
     _proto.init = function init() {
-      var _this2 = this;
+      var _this$markers,
+          _this2 = this;
 
       _AbstractPlugin.prototype.init.call(this);
 
@@ -797,7 +798,12 @@
       this.gallery = this.psv.getPlugin('gallery');
 
       if (!this.is3D() && !this.markers) {
-        throw new photoSphereViewer.PSVError('Tour plugin requires the Markers plugin in markers mode');
+        throw new photoSphereViewer.PSVError('VirtualTour plugin requires the Markers plugin in markers mode.');
+      }
+
+      if ((_this$markers = this.markers) != null && _this$markers.config.markers) {
+        photoSphereViewer.utils.logWarn('No default markers can be configured on Markers plugin when using VirtualTour plugin. ' + 'Consider defining `markers` on each tour node.');
+        delete this.markers.config.markers;
       }
 
       this.datasource = this.isServerSide() ? new ServerSideDatasource(this) : new ClientSideDatasource(this);
@@ -808,7 +814,7 @@
 
           _this2.psv.renderer.scene.add(_this2.arrowsGroup);
 
-          var ambientLight = new THREE.AmbientLight(0xffffff, 1);
+          var ambientLight = new three.AmbientLight(0xffffff, 1);
 
           _this2.psv.renderer.scene.add(ambientLight);
 
@@ -980,7 +986,9 @@
             }
           };
         }), function (id) {
-          return _this3.setCurrentNode(id);
+          _this3.setCurrentNode(id);
+
+          _this3.gallery.hide();
         });
       }
     }
@@ -1131,7 +1139,7 @@
         if (_this5.is3D()) {
           var _mesh$userData, _link$arrowStyle, _link$arrowStyle2;
 
-          var mesh = new THREE.Mesh(ARROW_GEOM, new THREE.MeshLambertMaterial());
+          var mesh = new three.Mesh(ARROW_GEOM, new three.MeshLambertMaterial());
           mesh.userData = (_mesh$userData = {}, _mesh$userData[LINK_DATA] = link, _mesh$userData.longitude = position.longitude, _mesh$userData);
           mesh.rotation.order = 'YXZ';
           mesh.rotateY(-position.longitude);
@@ -1141,8 +1149,8 @@
             latitude: 0
           }, mesh.position).multiplyScalar(1 / photoSphereViewer.CONSTANTS.SPHERE_RADIUS);
 
-          var outlineMesh = new THREE.Mesh(ARROW_OUTLINE_GEOM, new THREE.MeshBasicMaterial({
-            side: THREE.BackSide
+          var outlineMesh = new three.Mesh(ARROW_OUTLINE_GEOM, new three.MeshBasicMaterial({
+            side: three.BackSide
           }));
           outlineMesh.position.copy(mesh.position);
           outlineMesh.rotation.copy(mesh.rotation);
@@ -1162,7 +1170,9 @@
           _this5.markers.addMarker(_extends({}, _this5.config.markerStyle, link.markerStyle, {
             id: "tour-link-" + link.nodeId,
             tooltip: link.name,
+            visible: true,
             hideList: true,
+            content: null,
             data: (_data = {}, _data[LINK_DATA] = link, _data)
           }, position), false);
         }
@@ -1189,8 +1199,8 @@
 
     _proto.__getLinkPosition = function __getLinkPosition(node, link) {
       if (this.isGps()) {
-        var p1 = [THREE.MathUtils.degToRad(node.position[0]), THREE.MathUtils.degToRad(node.position[1])];
-        var p2 = [THREE.MathUtils.degToRad(link.position[0]), THREE.MathUtils.degToRad(link.position[1])];
+        var p1 = [three.MathUtils.degToRad(node.position[0]), three.MathUtils.degToRad(node.position[1])];
+        var p2 = [three.MathUtils.degToRad(link.position[0]), three.MathUtils.degToRad(link.position[1])];
         var h1 = node.position[2] !== undefined ? node.position[2] : link.position[2] || 0;
         var h2 = link.position[2] !== undefined ? link.position[2] : node.position[2] || 0;
         var latitude = 0;

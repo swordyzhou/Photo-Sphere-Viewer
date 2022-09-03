@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.CubemapAdapter = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -208,14 +208,14 @@
       }
 
       var cubeSize = photoSphereViewer.CONSTANTS.SPHERE_RADIUS * 2 * scale;
-      var geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize).scale(1, 1, -1);
+      var geometry = new three.BoxGeometry(cubeSize, cubeSize, cubeSize).scale(1, 1, -1);
       var materials = [];
 
       for (var i = 0; i < 6; i++) {
-        materials.push(new THREE.MeshBasicMaterial());
+        materials.push(photoSphereViewer.AbstractAdapter.createOverlayMaterial());
       }
 
-      return new THREE.Mesh(geometry, materials);
+      return new three.Mesh(geometry, materials);
     }
     /**
      * @override
@@ -226,15 +226,30 @@
       var texture = textureData.texture;
 
       for (var i = 0; i < 6; i++) {
-        var _mesh$material$i$map;
-
         if (this.config.flipTopBottom && (i === 2 || i === 3)) {
-          texture[i].center = new THREE.Vector2(0.5, 0.5);
+          texture[i].center = new three.Vector2(0.5, 0.5);
           texture[i].rotation = Math.PI;
         }
 
-        (_mesh$material$i$map = mesh.material[i].map) == null ? void 0 : _mesh$material$i$map.dispose();
-        mesh.material[i].map = texture[i];
+        this.__setUniform(mesh, i, photoSphereViewer.AbstractAdapter.OVERLAY_UNIFORMS.panorama, texture[i]);
+      }
+
+      this.setOverlay(mesh, null);
+    }
+    /**
+     * @override
+     */
+    ;
+
+    _proto.setOverlay = function setOverlay(mesh, textureData, opacity) {
+      for (var i = 0; i < 6; i++) {
+        this.__setUniform(mesh, i, photoSphereViewer.AbstractAdapter.OVERLAY_UNIFORMS.overlayOpacity, opacity);
+
+        if (!textureData) {
+          this.__setUniform(mesh, i, photoSphereViewer.AbstractAdapter.OVERLAY_UNIFORMS.overlay, new three.Texture());
+        } else {
+          this.__setUniform(mesh, i, photoSphereViewer.AbstractAdapter.OVERLAY_UNIFORMS.overlay, textureData.texture[i]);
+        }
       }
     }
     /**
@@ -244,7 +259,8 @@
 
     _proto.setTextureOpacity = function setTextureOpacity(mesh, opacity) {
       for (var i = 0; i < 6; i++) {
-        mesh.material[i].opacity = opacity;
+        this.__setUniform(mesh, i, photoSphereViewer.AbstractAdapter.OVERLAY_UNIFORMS.globalOpacity, opacity);
+
         mesh.material[i].transparent = opacity < 1;
       }
     }
@@ -259,12 +275,29 @@
       (_textureData$texture = textureData.texture) == null ? void 0 : _textureData$texture.forEach(function (texture) {
         return texture.dispose();
       });
+    }
+    /**
+     * @param {external:THREE.Mesh} mesh
+     * @param {number} index
+     * @param {string} uniform
+     * @param {*} value
+     * @private
+     */
+    ;
+
+    _proto.__setUniform = function __setUniform(mesh, index, uniform, value) {
+      if (mesh.material[index].uniforms[uniform].value instanceof three.Texture) {
+        mesh.material[index].uniforms[uniform].value.dispose();
+      }
+
+      mesh.material[index].uniforms[uniform].value = value;
     };
 
     return CubemapAdapter;
   }(photoSphereViewer.AbstractAdapter);
   CubemapAdapter.id = 'cubemap';
   CubemapAdapter.supportsDownload = false;
+  CubemapAdapter.supportsOverlay = true;
 
   exports.CUBE_ARRAY = CUBE_ARRAY;
   exports.CUBE_HASHMAP = CUBE_HASHMAP;

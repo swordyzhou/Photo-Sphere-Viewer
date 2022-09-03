@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('uevent')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'uevent'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory(global.PhotoSphereViewer = {}, global.THREE, global.uEvent));
-})(this, (function (exports, THREE, uevent) { 'use strict';
+})(this, (function (exports, three, uevent) { 'use strict';
 
   /**
    * @summary Custom error used in the lib
@@ -53,6 +53,11 @@
      * @type {boolean}
      * @readonly
      * @static
+     */
+
+    /**
+     * @summary Indicated if the adapter can display an additional transparent image above the panorama
+     * @type {boolean}
      */
 
     /**
@@ -103,11 +108,12 @@
      * @summary Loads the panorama texture(s)
      * @param {*} panorama
      * @param {PSV.PanoData | PSV.PanoDataProvider} [newPanoData]
+     * @param {boolean} [useXmpPanoData]
      * @returns {Promise.<PSV.TextureData>}
      */
     ;
 
-    _proto.loadTexture = function loadTexture(panorama, newPanoData) {
+    _proto.loadTexture = function loadTexture(panorama, newPanoData, useXmpPanoData) {
       // eslint-disable-line no-unused-vars
       throw new PSVError('loadTexture not implemented');
     }
@@ -160,12 +166,57 @@
     _proto.disposeTexture = function disposeTexture(textureData) {
       // eslint-disable-line no-unused-vars
       throw new PSVError('disposeTexture not implemented');
+    }
+    /**
+     * @abstract
+     * @summary Applies the overlay to the mesh
+     * @param {external:THREE.Mesh} mesh
+     * @param {PSV.TextureData} textureData
+     * @param {number} opacity
+     */
+    ;
+
+    _proto.setOverlay = function setOverlay(mesh, textureData, opacity) {
+      // eslint-disable-line no-unused-vars
+      throw new PSVError('setOverlay not implemented');
+    }
+    /**
+     * @internal
+     */
+    ;
+
+    /**
+     * @internal
+     */
+    AbstractAdapter.createOverlayMaterial = function createOverlayMaterial() {
+      var _uniforms;
+
+      return new three.ShaderMaterial({
+        uniforms: (_uniforms = {}, _uniforms[AbstractAdapter.OVERLAY_UNIFORMS.panorama] = {
+          value: new three.Texture()
+        }, _uniforms[AbstractAdapter.OVERLAY_UNIFORMS.overlay] = {
+          value: new three.Texture()
+        }, _uniforms[AbstractAdapter.OVERLAY_UNIFORMS.globalOpacity] = {
+          value: 1.0
+        }, _uniforms[AbstractAdapter.OVERLAY_UNIFORMS.overlayOpacity] = {
+          value: 1.0
+        }, _uniforms),
+        vertexShader: "\nvarying vec2 vUv;\n\nvoid main() {\n  vUv = uv;\n  gl_Position = projectionMatrix *  modelViewMatrix * vec4( position, 1.0 );\n}",
+        fragmentShader: "\nuniform sampler2D " + AbstractAdapter.OVERLAY_UNIFORMS.panorama + ";\nuniform sampler2D " + AbstractAdapter.OVERLAY_UNIFORMS.overlay + ";\nuniform float " + AbstractAdapter.OVERLAY_UNIFORMS.globalOpacity + ";\nuniform float " + AbstractAdapter.OVERLAY_UNIFORMS.overlayOpacity + ";\n\nvarying vec2 vUv;\n\nvoid main() {\n  vec4 tColor1 = texture2D( " + AbstractAdapter.OVERLAY_UNIFORMS.panorama + ", vUv );\n  vec4 tColor2 = texture2D( " + AbstractAdapter.OVERLAY_UNIFORMS.overlay + ", vUv );\n  gl_FragColor = vec4( \n    mix( tColor1.rgb, tColor2.rgb, tColor2.a * " + AbstractAdapter.OVERLAY_UNIFORMS.overlayOpacity + " ), \n    " + AbstractAdapter.OVERLAY_UNIFORMS.globalOpacity + "\n  );\n}"
+      });
     };
 
     return AbstractAdapter;
   }();
   AbstractAdapter.id = null;
   AbstractAdapter.supportsDownload = false;
+  AbstractAdapter.supportsOverlay = false;
+  AbstractAdapter.OVERLAY_UNIFORMS = {
+    panorama: 'panorama',
+    overlay: 'overlay',
+    globalOpacity: 'globalOpacity',
+    overlayOpacity: 'overlayOpacity'
+  };
 
   function _defineProperties(target, props) {
     for (var i = 0; i < props.length; i++) {
@@ -939,7 +990,7 @@
   function toggleClass(element, className, active) {
     if (active === undefined) {
       element.classList.toggle(className);
-    } else if (active && !element.classList.contains(className)) {
+    } else if (active) {
       element.classList.add(className);
     } else if (!active) {
       element.classList.remove(className);
@@ -953,11 +1004,9 @@
    */
 
   function addClasses(element, className) {
-    if (className) {
-      className.split(' ').forEach(function (name) {
-        toggleClass(element, name, true);
-      });
-    }
+    var _element$classList;
+
+    (_element$classList = element.classList).add.apply(_element$classList, className.split(' '));
   }
   /**
    * @summary Removes one or several CSS classes to an element
@@ -967,11 +1016,9 @@
    */
 
   function removeClasses(element, className) {
-    if (className) {
-      className.split(' ').forEach(function (name) {
-        toggleClass(element, name, false);
-      });
-    }
+    var _element$classList2;
+
+    (_element$classList2 = element.classList).remove.apply(_element$classList2, className.split(' '));
   }
   /**
    * @summary Searches if an element has a particular parent at any level including itself
@@ -1164,15 +1211,11 @@
   }
 
   /**
-   * @summary Ensures that a number is in a given interval
-   * @memberOf PSV.utils
-   * @param {number} x
-   * @param {number} min
-   * @param {number} max
-   * @returns {number}
+   * @deprecated use THREE.MathUtils.clamp
    */
+
   function bound(x, min, max) {
-    return Math.max(min, Math.min(max, x));
+    return three.MathUtils.clamp(x, min, max);
   }
   /**
    * @summary Ensure a value is within 0 and `max`
@@ -1191,28 +1234,11 @@
     return result;
   }
   /**
-   * @summary Checks if a value is an integer
-   * @memberOf PSV.utils
-   * @param {*} value
-   * @returns {boolean}
-   */
-
-  function isInteger(value) {
-    if (Number.isInteger) {
-      return Number.isInteger(value);
-    }
-
-    return typeof value === 'number' && Number.isFinite(value) && Math.floor(value) === value;
-  }
-  /**
-   * @summary Tests if a number is power of two
-   * @memberOf PSV.utils
-   * @param {number} x
-   * @return {boolean}
+   * @deprecated Use THREE.MathUtils.isPowerOfTwo
    */
 
   function isPowerOfTwo(x) {
-    return Math.log(x) / Math.log(2) % 1 === 0;
+    return three.MathUtils.isPowerOfTwo(x);
   }
   /**
    * @summary Computes the sum of an array
@@ -1712,18 +1738,13 @@
    * @summary Parse a CSS-like position into an array of position keywords among top, bottom, left, right and center
    * @memberOf PSV.utils
    * @param {string | string[]} value
-   * @param {string} defaultValue
    * @param {boolean} [allowCenter=true]
    * @return {string[]}
    */
 
-  function cleanPosition(value, defaultValue, allowCenter) {
+  function cleanPosition(value, allowCenter) {
     if (allowCenter === void 0) {
       allowCenter = true;
-    }
-
-    if (!value) {
-      return defaultValue.split(' ');
     }
 
     if (typeof value === 'string') {
@@ -1770,7 +1791,7 @@
         case 'degrees per minute':
         case 'dps':
         case 'degrees per second':
-          parsed = THREE.MathUtils.degToRad(speedValue);
+          parsed = three.MathUtils.degToRad(speedValue);
           break;
         // Radians per minute / second
 
@@ -1834,7 +1855,7 @@
         switch (unit) {
           case 'deg':
           case 'degs':
-            parsed = THREE.MathUtils.degToRad(value);
+            parsed = three.MathUtils.degToRad(value);
             break;
 
           case 'rad':
@@ -1855,7 +1876,7 @@
     }
 
     parsed = loop(zeroCenter ? parsed + Math.PI : parsed, Math.PI * 2);
-    return zeroCenter ? bound(parsed - Math.PI, -Math.PI / (halfCircle ? 2 : 1), Math.PI / (halfCircle ? 2 : 1)) : parsed;
+    return zeroCenter ? three.MathUtils.clamp(parsed - Math.PI, -Math.PI / (halfCircle ? 2 : 1), Math.PI / (halfCircle ? 2 : 1)) : parsed;
   }
   /**
    * @summary Creates a THREE texture from an image
@@ -1865,13 +1886,13 @@
    */
 
   function createTexture(img) {
-    var texture = new THREE.Texture(img);
+    var texture = new three.Texture(img);
     texture.needsUpdate = true;
-    texture.minFilter = THREE.LinearFilter;
+    texture.minFilter = three.LinearFilter;
     texture.generateMipmaps = false;
     return texture;
   }
-  var quaternion = new THREE.Quaternion();
+  var quaternion = new three.Quaternion();
   /**
    * @summary Applies the inverse of Euler angles to a vector
    * @memberOf PSV.utils
@@ -2014,25 +2035,12 @@
     /**
      * @summary Promise chaining
      * @param {Function} [onFulfilled] - Called when the animation is complete (true) or cancelled (false)
-     * @param {Function} [onRejected] - deprecated
      * @returns {Promise}
      */
     ;
 
-    _proto.then = function then(onFulfilled, onRejected) {
+    _proto.then = function then(onFulfilled) {
       var _this3 = this;
-
-      if (onFulfilled === void 0) {
-        onFulfilled = null;
-      }
-
-      if (onRejected === void 0) {
-        onRejected = null;
-      }
-
-      if (onRejected) {
-        logWarn('Animation#then does not accept a rejection handler anymore');
-      }
 
       if (this.__resolved || this.__cancelled) {
         return Promise.resolve(this.__resolved).then(onFulfilled);
@@ -2063,32 +2071,6 @@
           this.__animationFrame = null;
         }
       }
-    }
-    /**
-     * @deprecated not supported anymore
-     */
-    ;
-
-    _proto.catch = function _catch() {
-      logWarn('Animation#catch is not supported anymore');
-      return this.then();
-    }
-    /**
-     * @deprecated not supported anymore
-     */
-    ;
-
-    _proto.finally = function _finally(onFinally) {
-      logWarn('Animation#finally is not supported anymore');
-      return this.then(onFinally);
-    }
-    /**
-     * @deprecated not supported anymore
-     */
-    ;
-
-    Animation.resolve = function resolve() {
-      logWarn('Animation.resolve is not supported anymore');
     };
 
     return Animation;
@@ -2217,7 +2199,7 @@
       }
 
       this.mode = Dynamic.POSITION;
-      this.target = this.loopValue ? loop(position, this.max) : bound(position, this.min, this.max);
+      this.target = this.loopValue ? loop(position, this.max) : three.MathUtils.clamp(position, this.min, this.max);
       this.speedMult = speedMult;
     }
     /**
@@ -2273,7 +2255,7 @@
     ;
 
     _proto.setValue = function setValue(value) {
-      this.target = this.loopValue ? loop(value, this.max) : bound(value, this.min, this.max);
+      this.target = this.loopValue ? loop(value, this.max) : three.MathUtils.clamp(value, this.min, this.max);
       this.mode = Dynamic.STOP;
 
       if (this.target !== this.current) {
@@ -2332,7 +2314,7 @@
 
 
       if (next !== null) {
-        next = this.loopValue ? loop(next, this.max) : bound(next, this.min, this.max);
+        next = this.loopValue ? loop(next, this.max) : three.MathUtils.clamp(next, this.min, this.max);
 
         if (next !== this.current) {
           this.current = next;
@@ -2797,7 +2779,6 @@
     normalizeWheel: normalizeWheel,
     bound: bound,
     loop: loop,
-    isInteger: isInteger,
     isPowerOfTwo: isPowerOfTwo,
     sum: sum,
     distance: distance,
@@ -2863,7 +2844,7 @@
         resolution: 64
       }, options);
 
-      if (!isPowerOfTwo(_this.config.resolution)) {
+      if (!three.MathUtils.isPowerOfTwo(_this.config.resolution)) {
         throw new PSVError('EquirectangularAdapter resolution must be power of two');
       }
 
@@ -2893,12 +2874,17 @@
      * @override
      * @param {string} panorama
      * @param {PSV.PanoData | PSV.PanoDataProvider} [newPanoData]
+     * @param {boolean} [useXmpPanoData]
      * @returns {Promise.<PSV.TextureData>}
      */
     ;
 
-    _proto.loadTexture = function loadTexture(panorama, newPanoData) {
+    _proto.loadTexture = function loadTexture(panorama, newPanoData, useXmpPanoData) {
       var _this2 = this;
+
+      if (useXmpPanoData === void 0) {
+        useXmpPanoData = this.psv.config.useXmpData;
+      }
 
       if (typeof panorama !== 'string') {
         if (Array.isArray(panorama) || typeof panorama === 'object' && !!panorama.left) {
@@ -2908,14 +2894,7 @@
         return Promise.reject(new PSVError('Invalid panorama url, are you using the right adapter?'));
       }
 
-      return (!this.psv.config.useXmpData ? this.psv.textureLoader.loadImage(panorama, function (p) {
-        return _this2.psv.loader.setProgress(p);
-      }).then(function (img) {
-        return {
-          img: img,
-          xmpPanoData: null
-        };
-      }) : this.__loadXMP(panorama, function (p) {
+      return (useXmpPanoData ? this.__loadXMP(panorama, function (p) {
         return _this2.psv.loader.setProgress(p);
       }).then(function (xmpPanoData) {
         return _this2.psv.textureLoader.loadImage(panorama).then(function (img) {
@@ -2924,6 +2903,13 @@
             xmpPanoData: xmpPanoData
           };
         });
+      }) : this.psv.textureLoader.loadImage(panorama, function (p) {
+        return _this2.psv.loader.setProgress(p);
+      }).then(function (img) {
+        return {
+          img: img,
+          xmpPanoData: null
+        };
       })).then(function (_ref) {
         var _newPanoData, _newPanoData2, _newPanoData3, _newPanoData4, _newPanoData5, _newPanoData6, _newPanoData7, _newPanoData8, _newPanoData9;
 
@@ -3066,9 +3052,9 @@
       }
 
       // The middle of the panorama is placed at longitude=0
-      var geometry = new THREE.SphereGeometry(SPHERE_RADIUS * scale, this.SPHERE_SEGMENTS, this.SPHERE_HORIZONTAL_SEGMENTS, -Math.PI / 2).scale(-1, 1, 1);
-      var material = new THREE.MeshBasicMaterial();
-      return new THREE.Mesh(geometry, material);
+      var geometry = new three.SphereGeometry(SPHERE_RADIUS * scale, this.SPHERE_SEGMENTS, this.SPHERE_HORIZONTAL_SEGMENTS, -Math.PI / 2).scale(-1, 1, 1);
+      var material = AbstractAdapter.createOverlayMaterial();
+      return new three.Mesh(geometry, material);
     }
     /**
      * @override
@@ -3076,10 +3062,23 @@
     ;
 
     _proto.setTexture = function setTexture(mesh, textureData) {
-      var _mesh$material$map;
+      this.__setUniform(mesh, AbstractAdapter.OVERLAY_UNIFORMS.panorama, textureData.texture);
 
-      (_mesh$material$map = mesh.material.map) == null ? void 0 : _mesh$material$map.dispose();
-      mesh.material.map = textureData.texture;
+      this.setOverlay(mesh, null);
+    }
+    /**
+     * @override
+     */
+    ;
+
+    _proto.setOverlay = function setOverlay(mesh, textureData, opacity) {
+      this.__setUniform(mesh, AbstractAdapter.OVERLAY_UNIFORMS.overlayOpacity, opacity);
+
+      if (!textureData) {
+        this.__setUniform(mesh, AbstractAdapter.OVERLAY_UNIFORMS.overlay, new three.Texture());
+      } else {
+        this.__setUniform(mesh, AbstractAdapter.OVERLAY_UNIFORMS.overlay, textureData.texture);
+      }
     }
     /**
      * @override
@@ -3087,7 +3086,8 @@
     ;
 
     _proto.setTextureOpacity = function setTextureOpacity(mesh, opacity) {
-      mesh.material.opacity = opacity;
+      this.__setUniform(mesh, AbstractAdapter.OVERLAY_UNIFORMS.globalOpacity, opacity);
+
       mesh.material.transparent = opacity < 1;
     }
     /**
@@ -3099,12 +3099,28 @@
       var _textureData$texture;
 
       (_textureData$texture = textureData.texture) == null ? void 0 : _textureData$texture.dispose();
+    }
+    /**
+     * @param {external:THREE.Mesh} mesh
+     * @param {string} uniform
+     * @param {*} value
+     * @private
+     */
+    ;
+
+    _proto.__setUniform = function __setUniform(mesh, uniform, value) {
+      if (mesh.material.uniforms[uniform].value instanceof three.Texture) {
+        mesh.material.uniforms[uniform].value.dispose();
+      }
+
+      mesh.material.uniforms[uniform].value = value;
     };
 
     return EquirectangularAdapter;
   }(AbstractAdapter);
   EquirectangularAdapter.id = 'equirectangular';
   EquirectangularAdapter.supportsDownload = true;
+  EquirectangularAdapter.supportsOverlay = true;
 
   /**
    * @namespace PSV.components
@@ -3691,7 +3707,7 @@
 
     _proto.onClick = function onClick() {
       if (this.config.onClick) {
-        this.config.onClick.apply(this.psv);
+        this.config.onClick.call(this.psv, this.psv);
       }
     };
 
@@ -4918,6 +4934,8 @@
 
   var DEFAULTS = {
     panorama: null,
+    overlay: null,
+    overlayOpacity: 1,
     container: null,
     adapter: null,
     plugins: [],
@@ -5017,6 +5035,9 @@
 
       return _adapter;
     },
+    overlayOpacity: function overlayOpacity(_overlayOpacity) {
+      return three.MathUtils.clamp(_overlayOpacity, 0, 1);
+    },
     defaultLong: function defaultLong(_defaultLong) {
       // defaultLat is between 0 and PI
       return parseAngle(_defaultLong);
@@ -5033,7 +5054,7 @@
       } // minFov between 1 and 179
 
 
-      return bound(_minFov, 1, 179);
+      return three.MathUtils.clamp(_minFov, 1, 179);
     },
     maxFov: function maxFov(_maxFov, config) {
       // minFov and maxFov must be ordered
@@ -5042,7 +5063,7 @@
       } // maxFov between 1 and 179
 
 
-      return bound(_maxFov, 1, 179);
+      return three.MathUtils.clamp(_maxFov, 1, 179);
     },
     lang: function lang(_lang) {
       if (Array.isArray(_lang.twoFingers)) {
@@ -5637,7 +5658,7 @@
       context.lineWidth = this.prop.tickness;
       context.strokeStyle = getStyle(this.loader, 'color');
       context.beginPath();
-      context.arc(this.canvas.width / 2, this.canvas.height / 2, this.canvas.width / 2 - this.prop.tickness / 2, -Math.PI / 2, bound(value, 0, 100) / 100 * 2 * Math.PI - Math.PI / 2);
+      context.arc(this.canvas.width / 2, this.canvas.height / 2, this.canvas.width / 2 - this.prop.tickness / 2, -Math.PI / 2, three.MathUtils.clamp(value, 0, 100) / 100 * 2 * Math.PI - Math.PI / 2);
       context.stroke();
       this.psv.trigger(EVENTS.LOAD_PROGRESS, Math.round(value));
     };
@@ -6391,9 +6412,9 @@
     return AbstractService;
   }();
 
-  var vector2 = new THREE.Vector2();
-  var vector3 = new THREE.Vector3();
-  var eulerZero = new THREE.Euler(0, 0, 0, 'ZXY');
+  var vector2 = new three.Vector2();
+  var vector3 = new three.Vector3();
+  var eulerZero = new three.Euler(0, 0, 0, 'ZXY');
   /**
    * @summary Collections of data converters for the current viewer
    * @extends PSV.services.AbstractService
@@ -6440,7 +6461,7 @@
     ;
 
     _proto.vFovToHFov = function vFovToHFov(vFov) {
-      return THREE.MathUtils.radToDeg(2 * Math.atan(Math.tan(THREE.MathUtils.degToRad(vFov) / 2) * this.prop.aspect));
+      return three.MathUtils.radToDeg(2 * Math.atan(Math.tan(three.MathUtils.degToRad(vFov) / 2) * this.prop.aspect));
     }
     /**
      * @summary Converts a speed into a duration from current position to a new position
@@ -6531,7 +6552,7 @@
 
     _proto.sphericalCoordsToVector3 = function sphericalCoordsToVector3(position, vector) {
       if (!vector) {
-        vector = new THREE.Vector3();
+        vector = new three.Vector3();
       }
 
       vector.x = SPHERE_RADIUS * -Math.cos(position.latitude) * Math.sin(position.longitude);
@@ -6625,7 +6646,7 @@
       } else {
         return {
           longitude: parseAngle(position.longitude),
-          latitude: parseAngle(position.latitude, true)
+          latitude: parseAngle(position.latitude, !this.prop.littlePlanet)
         };
       }
     }
@@ -6652,9 +6673,9 @@
 
     _proto.cleanPanoramaPose = function cleanPanoramaPose(panoData) {
       return {
-        pan: THREE.MathUtils.degToRad((panoData == null ? void 0 : panoData.poseHeading) || 0),
-        tilt: THREE.MathUtils.degToRad((panoData == null ? void 0 : panoData.posePitch) || 0),
-        roll: THREE.MathUtils.degToRad((panoData == null ? void 0 : panoData.poseRoll) || 0)
+        pan: three.MathUtils.degToRad((panoData == null ? void 0 : panoData.poseHeading) || 0),
+        tilt: three.MathUtils.degToRad((panoData == null ? void 0 : panoData.posePitch) || 0),
+        roll: three.MathUtils.degToRad((panoData == null ? void 0 : panoData.poseRoll) || 0)
       };
     };
 
@@ -7404,26 +7425,44 @@
     _proto.__stopMoveInertia = function __stopMoveInertia(evt) {
       var _this8 = this;
 
-      var direction = {
-        x: evt.clientX - this.state.mouseHistory[0][1],
-        y: evt.clientY - this.state.mouseHistory[0][2]
+      // get direction at end of movement
+      var curve = new three.SplineCurve(this.state.mouseHistory.map(function (_ref) {
+        var x = _ref[1],
+            y = _ref[2];
+        return new three.Vector2(x, y);
+      }));
+      var direction = curve.getTangent(1); // average speed
+
+      var speed = this.state.mouseHistory.slice(1).reduce(function (_ref2, curr) {
+        var total = _ref2.total,
+            prev = _ref2.prev;
+        return {
+          total: total + Math.sqrt(Math.pow(curr[1] - prev[1], 2) + Math.pow(curr[2] - prev[2], 2)) / (curr[0] - [prev[0]]),
+          prev: curr
+        };
+      }, {
+        total: 0,
+        prev: this.state.mouseHistory[0]
+      }).total / this.state.mouseHistory.length;
+      var current = {
+        clientX: evt.clientX,
+        clientY: evt.clientY
       };
-      var norm = Math.sqrt(direction.x * direction.x + direction.y * direction.y);
       this.prop.animationPromise = new Animation({
         properties: {
-          clientX: {
-            start: evt.clientX,
-            end: evt.clientX + direction.x
-          },
-          clientY: {
-            start: evt.clientY,
-            end: evt.clientY + direction.y
+          speed: {
+            start: speed,
+            end: 0
           }
         },
-        duration: norm * INERTIA_WINDOW / 100,
-        easing: 'outCirc',
+        duration: 1000,
+        easing: 'outQuad',
         onTick: function onTick(properties) {
-          _this8.__move(properties, false);
+          // 3 is a magic number
+          current.clientX += properties.speed * direction.x * 3 * SYSTEM.pixelRatio;
+          current.clientY += properties.speed * direction.y * 3 * SYSTEM.pixelRatio;
+
+          _this8.__move(current, false);
         }
       });
       this.prop.animationPromise.then(function () {
@@ -7518,8 +7557,8 @@
         var x = evt.clientX;
         var y = evt.clientY;
         var rotation = {
-          longitude: (x - this.state.mouseX) / this.prop.size.width * this.config.moveSpeed * THREE.MathUtils.degToRad(this.prop.hFov),
-          latitude: (y - this.state.mouseY) / this.prop.size.height * this.config.moveSpeed * THREE.MathUtils.degToRad(this.prop.vFov)
+          longitude: (x - this.state.mouseX) / this.prop.size.width * this.config.moveSpeed * three.MathUtils.degToRad(this.prop.hFov),
+          latitude: (y - this.state.mouseY) / this.prop.size.height * this.config.moveSpeed * three.MathUtils.degToRad(this.prop.vFov)
         };
         var currentPosition = this.psv.getPosition();
         this.psv.rotate({
@@ -7590,19 +7629,29 @@
 
     _proto.__logMouseMove = function __logMouseMove(evt) {
       var now = Date.now();
-      this.state.mouseHistory.push([now, evt.clientX, evt.clientY]);
+      var last = this.state.mouseHistory.length ? this.state.mouseHistory[this.state.mouseHistory.length - 1] : [0, -1, -1]; // avoid duplicates
+
+      if (last[1] === evt.clientX && last[2] === evt.clientY) {
+        last[0] = now;
+      } else if (now === last[0]) {
+        last[1] = evt.clientX;
+        last[2] = evt.clientY;
+      } else {
+        this.state.mouseHistory.push([now, evt.clientX, evt.clientY]);
+      }
+
       var previous = null;
 
       for (var i = 0; i < this.state.mouseHistory.length;) {
-        if (this.state.mouseHistory[0][i] < now - INERTIA_WINDOW) {
+        if (this.state.mouseHistory[i][0] < now - INERTIA_WINDOW) {
           this.state.mouseHistory.splice(i, 1);
-        } else if (previous && this.state.mouseHistory[0][i] - previous > INERTIA_WINDOW / 10) {
+        } else if (previous && this.state.mouseHistory[i][0] - previous > INERTIA_WINDOW / 10) {
           this.state.mouseHistory.splice(0, i);
           i = 0;
-          previous = this.state.mouseHistory[0][i];
+          previous = this.state.mouseHistory[i][0];
         } else {
+          previous = this.state.mouseHistory[i][0];
           i++;
-          previous = this.state.mouseHistory[0][i];
         }
       }
     };
@@ -7634,7 +7683,7 @@
        * @protected
        */
 
-      _this.renderer = new THREE.WebGLRenderer({
+      _this.renderer = new three.WebGLRenderer({
         alpha: true,
         antialias: true
       });
@@ -7648,14 +7697,14 @@
        * @protected
        */
 
-      _this.scene = new THREE.Scene();
+      _this.scene = new three.Scene();
       /**
        * @member {external:THREE.PerspectiveCamera}
        * @readonly
        * @protected
        */
 
-      _this.camera = new THREE.PerspectiveCamera(50, 16 / 9, 1, 2 * SPHERE_RADIUS);
+      _this.camera = new three.PerspectiveCamera(50, 16 / 9, 1, 2 * SPHERE_RADIUS);
       /**
        * @member {external:THREE.Mesh}
        * @readonly
@@ -7670,7 +7719,7 @@
        * @private
        */
 
-      _this.meshContainer = new THREE.Group();
+      _this.meshContainer = new three.Group();
 
       _this.meshContainer.add(_this.mesh);
 
@@ -7682,7 +7731,7 @@
        */
 
 
-      _this.raycaster = new THREE.Raycaster();
+      _this.raycaster = new three.Raycaster();
       /**
        * @member {number}
        * @private
@@ -7902,6 +7951,18 @@
       this.psv.trigger(EVENTS.PANORAMA_LOADED, textureData);
     }
     /**
+     * @summary Applies the overlay to the mesh
+     * @param {PSV.TextureData} textureData
+     * @param {number} opacity
+     * @package
+     */
+    ;
+
+    _proto.setOverlay = function setOverlay(textureData, opacity) {
+      this.psv.adapter.setOverlay(this.mesh, textureData, opacity);
+      this.psv.needsUpdate();
+    }
+    /**
      * @summary Apply a panorama data pose to a Mesh
      * @param {PSV.PanoData} [panoData]
      * @param {external:THREE.Mesh} [mesh=this.mesh]
@@ -7950,7 +8011,7 @@
       var positionProvided = isExtendedPosition(options);
       var zoomProvided = ('zoom' in options); // create temp group and new mesh, half size to be in "front" of the first one
 
-      var group = new THREE.Group();
+      var group = new three.Group();
       var mesh = this.psv.adapter.createMesh(0.5);
       this.psv.adapter.setTexture(mesh, textureData, true);
       this.psv.adapter.setTextureOpacity(mesh, 0);
@@ -7961,10 +8022,10 @@
         var cleanPosition = this.psv.dataHelper.cleanPosition(options);
         var currentPosition = this.psv.getPosition(); // Longitude rotation along the vertical axis
 
-        var verticalAxis = new THREE.Vector3(0, 1, 0);
+        var verticalAxis = new three.Vector3(0, 1, 0);
         group.rotateOnWorldAxis(verticalAxis, cleanPosition.longitude - currentPosition.longitude); // Latitude rotation along the camera horizontal axis
 
-        var horizontalAxis = new THREE.Vector3(0, 1, 0).cross(this.camera.getWorldDirection(new THREE.Vector3())).normalize();
+        var horizontalAxis = new three.Vector3(0, 1, 0).cross(this.camera.getWorldDirection(new three.Vector3())).normalize();
         group.rotateOnWorldAxis(horizontalAxis, cleanPosition.latitude - currentPosition.latitude);
       }
 
@@ -8054,7 +8115,7 @@
           }
         }
 
-        if (item.dispose && !(item instanceof THREE.Scene)) {
+        if (item.dispose && !(item instanceof three.Scene)) {
           item.dispose();
         }
 
@@ -8089,7 +8150,7 @@
        * @private
        */
 
-      _this.loader = new THREE.FileLoader();
+      _this.loader = new three.FileLoader();
 
       _this.loader.setResponseType('blob');
 
@@ -8402,7 +8463,7 @@
       var a = this.arrow; // compute size
 
       var style = {
-        posClass: cleanPosition(config.position, 'top center', false),
+        posClass: config.position ? cleanPosition(config.position, false) : ['top', 'center'],
         width: this.prop.width,
         height: this.prop.height,
         top: 0,
@@ -8652,7 +8713,7 @@
     return TooltipRenderer;
   }(AbstractService);
 
-  THREE.Cache.enabled = true;
+  three.Cache.enabled = true;
   /**
    * @summary Main class
    * @memberOf PSV
@@ -8695,6 +8756,7 @@
        * @property {boolean} autorotateEnabled - automatic rotation is enabled
        * @property {PSV.Animation} animationPromise - promise of the current animation
        * @property {Promise} loadingPromise - promise of the setPanorama method
+       * @property {boolean} littlePlanet - special tweaks for LittlePlanetAdapter
        * @property {number} idleTime - time of the last user action
        * @property {object} objectsObservers
        * @property {PSV.Size} size - size of the container
@@ -8707,13 +8769,14 @@
         uiRefresh: false,
         needsUpdate: false,
         fullscreen: false,
-        direction: new THREE.Vector3(0, 0, SPHERE_RADIUS),
+        direction: new three.Vector3(0, 0, SPHERE_RADIUS),
         vFov: null,
         hFov: null,
         aspect: null,
         autorotateEnabled: false,
         animationPromise: null,
         loadingPromise: null,
+        littlePlanet: false,
         idleTime: -1,
         objectsObservers: {},
         size: {
@@ -8858,7 +8921,7 @@
         }, _this.config.defaultZoomLvl, 0, 100),
         position: new MultiDynamic({
           longitude: new Dynamic(null, _this.config.defaultLong, 0, 2 * Math.PI, true),
-          latitude: new Dynamic(null, _this.config.defaultLat, -Math.PI / 2, Math.PI / 2)
+          latitude: _this.prop.littlePlanet ? new Dynamic(null, _this.config.defaultLat, 0, Math.PI * 2, true) : new Dynamic(null, _this.config.defaultLat, -Math.PI / 2, Math.PI / 2)
         }, function (position) {
           _this.dataHelper.sphericalCoordsToVector3(position, _this.prop.direction);
 
@@ -9103,13 +9166,11 @@
       (_this$prop$transition = this.prop.transitionAnimation) == null ? void 0 : _this$prop$transition.cancel(); // apply default parameters on first load
 
       if (!this.prop.ready) {
-        if (!('sphereCorrection' in options)) {
-          options.sphereCorrection = this.config.sphereCorrection;
-        }
-
-        if (!('panoData' in options)) {
-          options.panoData = this.config.panoData;
-        }
+        ['sphereCorrection', 'panoData', 'overlay', 'overlayOpacity'].forEach(function (opt) {
+          if (!(opt in options)) {
+            options[opt] = _this3.config[opt];
+          }
+        });
       }
 
       if (options.transition === undefined || options.transition === true) {
@@ -9126,6 +9187,10 @@
 
       if (options.description === undefined) {
         options.description = this.config.description;
+      }
+
+      if (!options.panoData && typeof this.config.panoData === 'function') {
+        options.panoData = this.config.panoData;
       }
 
       var positionProvided = isExtendedPosition(options);
@@ -9156,6 +9221,8 @@
           throw err;
         } else {
           _this3.resetIdleTimer();
+
+          _this3.setOverlay(options.overlay, options.overlayOpacity);
 
           _this3.navbar.setCaption(_this3.config.caption);
 
@@ -9203,17 +9270,56 @@
           _this3.loader.hide();
 
           _this3.prop.transitionAnimation = _this3.renderer.transition(textureData, options);
-          return _this3.prop.transitionAnimation.then(function (completed) {
-            _this3.prop.transitionAnimation = null;
+          return _this3.prop.transitionAnimation;
+        }).then(function (completed) {
+          _this3.prop.transitionAnimation = null;
 
-            if (!completed) {
-              throw getAbortError();
-            }
-          });
+          if (!completed) {
+            throw getAbortError();
+          }
         }).then(done, done);
       }
 
       return this.prop.loadingPromise;
+    }
+    /**
+     * @summary Loads a new overlay
+     * @param {*} path - URL of the new overlay file
+     * @param {number} [opacity=1]
+     * @returns {Promise}
+     */
+    ;
+
+    _proto.setOverlay = function setOverlay(path, opacity) {
+      var _this4 = this;
+
+      if (opacity === void 0) {
+        opacity = 1;
+      }
+
+      if (!this.adapter.constructor.supportsOverlay) {
+        return Promise.reject(new PSVError(this.adapter.constructor.id + " adapter does not supports overlay"));
+      }
+
+      if (!path) {
+        this.renderer.setOverlay(null, 0);
+        return Promise.resolve();
+      } else {
+        return this.adapter.loadTexture(path, function (image) {
+          var p = _this4.prop.panoData;
+          var r = image.width / p.croppedWidth;
+          return {
+            fullWidth: r * p.fullWidth,
+            fullHeight: r * p.fullHeight,
+            croppedWidth: r * p.croppedWidth,
+            croppedHeight: r * p.croppedHeight,
+            croppedX: r * p.croppedX,
+            croppedY: r * p.croppedY
+          };
+        }, false).then(function (textureData) {
+          _this4.renderer.setOverlay(textureData, opacity);
+        });
+      }
     }
     /**
      * @summary Update options
@@ -9224,7 +9330,7 @@
     ;
 
     _proto.setOptions = function setOptions(options) {
-      var _this4 = this;
+      var _this5 = this;
 
       var rawConfig = _extends({}, this.config, options);
 
@@ -9243,54 +9349,60 @@
         }
 
         if (CONFIG_PARSERS[key]) {
-          _this4.config[key] = CONFIG_PARSERS[key](value, rawConfig);
+          _this5.config[key] = CONFIG_PARSERS[key](value, rawConfig);
         } else {
-          _this4.config[key] = value;
+          _this5.config[key] = value;
         }
 
         switch (key) {
+          case 'overlay':
+          case 'overlayOpacity':
+            _this5.setOverlay(_this5.config.overlay, _this5.config.overlayOpacity);
+
+            break;
+
           case 'caption':
           case 'description':
-            _this4.navbar.setCaption(_this4.config.caption);
+            _this5.navbar.setCaption(_this5.config.caption);
 
             break;
 
           case 'size':
-            _this4.resize(value);
+            _this5.resize(value);
 
             break;
 
           case 'sphereCorrection':
-            _this4.renderer.setSphereCorrection(value);
+            _this5.renderer.setSphereCorrection(value);
 
             break;
 
           case 'navbar':
           case 'lang':
-            _this4.navbar.setButtons(_this4.config.navbar);
+            _this5.navbar.setButtons(_this5.config.navbar);
 
             break;
 
           case 'moveSpeed':
           case 'zoomSpeed':
-            _this4.__updateSpeeds();
+            _this5.__updateSpeeds();
 
             break;
 
           case 'minFov':
           case 'maxFov':
-            _this4.dynamics.zoom.setValue(_this4.dataHelper.fovToZoomLevel(_this4.prop.vFov));
+            _this5.dynamics.zoom.setValue(_this5.dataHelper.fovToZoomLevel(_this5.prop.vFov));
 
-            _this4.trigger(EVENTS.ZOOM_UPDATED, _this4.getZoomLevel());
+            _this5.trigger(EVENTS.ZOOM_UPDATED, _this5.getZoomLevel());
 
             break;
 
           case 'canvasBackground':
-            _this4.renderer.canvasContainer.style.background = _this4.config.canvasBackground;
+            _this5.renderer.canvasContainer.style.background = _this5.config.canvasBackground;
             break;
 
           case 'autorotateIdle':
-            _this4.resetIdleTimer();
+            _this5.resetIdleTimer();
 
             break;
         }
@@ -9440,7 +9552,7 @@
     ;
 
     _proto.animate = function animate(options) {
-      var _this5 = this;
+      var _this6 = this;
 
       this.__stopAll();
 
@@ -9498,18 +9610,18 @@
         easing: 'inOutSine',
         onTick: function onTick(properties) {
           if (positionProvided) {
-            _this5.rotate(properties);
+            _this6.rotate(properties);
           }
 
           if (zoomProvided) {
-            _this5.zoom(properties.zoom);
+            _this6.zoom(properties.zoom);
           }
         }
       });
       this.prop.animationPromise.then(function () {
-        _this5.prop.animationPromise = null;
+        _this6.prop.animationPromise = null;
 
-        _this5.resetIdleTimer();
+        _this6.resetIdleTimer();
       });
       return this.prop.animationPromise;
     }
@@ -9521,15 +9633,15 @@
     ;
 
     _proto.stopAnimation = function stopAnimation() {
-      var _this6 = this;
+      var _this7 = this;
 
       if (this.prop.animationPromise) {
         return new Promise(function (resolve) {
-          _this6.prop.animationPromise.then(resolve);
+          _this7.prop.animationPromise.then(resolve);
 
-          _this6.prop.animationPromise.cancel();
+          _this7.prop.animationPromise.cancel();
 
-          _this6.prop.animationPromise = null;
+          _this7.prop.animationPromise = null;
         });
       } else {
         return Promise.resolve();
@@ -9578,7 +9690,7 @@
     ;
 
     _proto.resize = function resize(size) {
-      var _this7 = this;
+      var _this8 = this;
 
       ['width', 'height'].forEach(function (dim) {
         if (size && size[dim]) {
@@ -9586,7 +9698,7 @@
             size[dim] += 'px';
           }
 
-          _this7.parent.style[dim] = size[dim];
+          _this8.parent.style[dim] = size[dim];
         }
       });
       this.autoSize();
@@ -9664,13 +9776,13 @@
     ;
 
     _proto.observeObjects = function observeObjects(userDataKey, listener) {
-      var _this8 = this;
+      var _this9 = this;
 
       this.prop.objectsObservers[userDataKey] = {
         listener: listener
       };
       return function () {
-        delete _this8.prop.objectsObservers[userDataKey];
+        delete _this9.prop.objectsObservers[userDataKey];
       };
     }
     /**
@@ -9694,7 +9806,7 @@
 
     _proto.__updateSpeeds = function __updateSpeeds() {
       this.dynamics.zoom.setSpeed(this.config.zoomSpeed * 50);
-      this.dynamics.position.setSpeed(THREE.MathUtils.degToRad(this.config.moveSpeed * 50));
+      this.dynamics.position.setSpeed(three.MathUtils.degToRad(this.config.moveSpeed * 50));
     };
 
     return Viewer;

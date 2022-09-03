@@ -1,4 +1,13 @@
-import * as THREE from 'three';
+import {
+  AmbientLight,
+  BackSide,
+  Group,
+  MathUtils,
+  Mesh,
+  MeshBasicMaterial,
+  MeshLambertMaterial,
+  PointLight
+} from 'three';
 import { AbstractPlugin, CONSTANTS, DEFAULTS, PSVError, registerButton, utils } from '../..';
 import { ClientSideDatasource } from './ClientSideDatasource';
 import {
@@ -227,9 +236,9 @@ export class VirtualTourPlugin extends AbstractPlugin {
     this.arrowsGroup = null;
 
     if (this.is3D()) {
-      this.arrowsGroup = new THREE.Group();
+      this.arrowsGroup = new Group();
 
-      const localLight = new THREE.PointLight(0xffffff, 1, 0);
+      const localLight = new PointLight(0xffffff, 1, 0);
       localLight.position.set(0, this.config.arrowPosition === 'bottom' ? 2 : -2, 0);
       this.arrowsGroup.add(localLight);
     }
@@ -246,7 +255,13 @@ export class VirtualTourPlugin extends AbstractPlugin {
     this.gallery = this.psv.getPlugin('gallery');
 
     if (!this.is3D() && !this.markers) {
-      throw new PSVError('Tour plugin requires the Markers plugin in markers mode');
+      throw new PSVError('VirtualTour plugin requires the Markers plugin in markers mode.');
+    }
+
+    if (this.markers?.config.markers) {
+      utils.logWarn('No default markers can be configured on Markers plugin when using VirtualTour plugin. '
+        + 'Consider defining `markers` on each tour node.');
+      delete this.markers.config.markers;
     }
 
     this.datasource = this.isServerSide() ? new ServerSideDatasource(this) : new ClientSideDatasource(this);
@@ -256,7 +271,7 @@ export class VirtualTourPlugin extends AbstractPlugin {
         this.__positionArrows();
         this.psv.renderer.scene.add(this.arrowsGroup);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 1);
+        const ambientLight = new AmbientLight(0xffffff, 1);
         this.psv.renderer.scene.add(ambientLight);
 
         this.psv.needsUpdate();
@@ -409,7 +424,10 @@ export class VirtualTourPlugin extends AbstractPlugin {
             description     : node.description,
           },
         })),
-        id => this.setCurrentNode(id)
+        (id) => {
+          this.setCurrentNode(id);
+          this.gallery.hide();
+        }
       );
     }
   }
@@ -552,7 +570,7 @@ export class VirtualTourPlugin extends AbstractPlugin {
       positions.push(position);
 
       if (this.is3D()) {
-        const mesh = new THREE.Mesh(ARROW_GEOM, new THREE.MeshLambertMaterial());
+        const mesh = new Mesh(ARROW_GEOM, new MeshLambertMaterial());
         mesh.userData = { [LINK_DATA]: link, longitude: position.longitude };
         mesh.rotation.order = 'YXZ';
         mesh.rotateY(-position.longitude);
@@ -560,7 +578,7 @@ export class VirtualTourPlugin extends AbstractPlugin {
           .sphericalCoordsToVector3({ longitude: position.longitude, latitude: 0 }, mesh.position)
           .multiplyScalar(1 / CONSTANTS.SPHERE_RADIUS);
 
-        const outlineMesh = new THREE.Mesh(ARROW_OUTLINE_GEOM, new THREE.MeshBasicMaterial({ side: THREE.BackSide }));
+        const outlineMesh = new Mesh(ARROW_OUTLINE_GEOM, new MeshBasicMaterial({ side: BackSide }));
         outlineMesh.position.copy(mesh.position);
         outlineMesh.rotation.copy(mesh.rotation);
 
@@ -580,7 +598,9 @@ export class VirtualTourPlugin extends AbstractPlugin {
           ...link.markerStyle,
           id      : `tour-link-${link.nodeId}`,
           tooltip : link.name,
+          visible : true,
           hideList: true,
+          content : null,
           data    : { [LINK_DATA]: link },
           ...position,
         }, false);
@@ -608,8 +628,8 @@ export class VirtualTourPlugin extends AbstractPlugin {
    */
   __getLinkPosition(node, link) {
     if (this.isGps()) {
-      const p1 = [THREE.MathUtils.degToRad(node.position[0]), THREE.MathUtils.degToRad(node.position[1])];
-      const p2 = [THREE.MathUtils.degToRad(link.position[0]), THREE.MathUtils.degToRad(link.position[1])];
+      const p1 = [MathUtils.degToRad(node.position[0]), MathUtils.degToRad(node.position[1])];
+      const p2 = [MathUtils.degToRad(link.position[0]), MathUtils.degToRad(link.position[1])];
       const h1 = node.position[2] !== undefined ? node.position[2] : link.position[2] || 0;
       const h2 = link.position[2] !== undefined ? link.position[2] : node.position[2] || 0;
 

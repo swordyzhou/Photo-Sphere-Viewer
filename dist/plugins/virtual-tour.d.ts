@@ -1,6 +1,6 @@
 import { Event } from 'uevent';
 import { ViewerOptions, Position, AbstractPlugin, Viewer } from 'photo-sphere-viewer';
-import { Marker, MarkerProperties } from 'photo-sphere-viewer/dist/plugins/markers';
+import { MarkerProperties } from 'photo-sphere-viewer/dist/plugins/markers';
 
 /**
  * @summary Definition of a single node in the tour
@@ -15,7 +15,7 @@ type VirtualTourNode = {
   name?: string;
   caption?: string;
   description?: string;
-  markers?: Marker[];
+  markers?: MarkerProperties[];
 };
 
 /**
@@ -25,7 +25,7 @@ type VirtualTourNodeLink = {
   nodeId: string;
   name?: string;
   position?: [number, number, number?];
-  markerStyle?: MarkerProperties;
+  markerStyle?: VirtualTourMarkerStyle;
   arrowStyle?: VirtualTourArrowStyle;
 };
 
@@ -42,6 +42,11 @@ type VirtualTourArrowStyle = {
   opacity?: number;
   scale?: [number, number];
 };
+
+/**
+ * @summary Style of the marker in markers mode
+ */
+type VirtualTourMarkerStyle = Omit<MarkerProperties, 'id' | 'longitude' | 'latitude' | 'polygonPx' | 'polygonRad' | 'polylinePx' | 'polylineRad' | 'tooltip' | 'content' | 'hideList' | 'visible' | 'data'>;
 
 /**
  * @summary Data associated to the "node-changed" event
@@ -66,7 +71,7 @@ type VirtualTourPluginPluginOptions = {
   preload?: boolean | ((node: VirtualTourNode, link: VirtualTourNodeLink) => boolean);
   rotateSpeed?: boolean | string | number;
   transition?: boolean | number;
-  markerStyle?: MarkerProperties;
+  markerStyle?: VirtualTourMarkerStyle;
   arrowStyle?: VirtualTourArrowStyle;
   markerLatOffset?: number;
   arrowPosition?: 'top' | 'bottom';
@@ -137,4 +142,4 @@ declare class VirtualTourPlugin extends AbstractPlugin {
 
 }
 
-export { EVENTS, MODE_3D, MODE_CLIENT, MODE_GPS, MODE_MANUAL, MODE_MARKERS, MODE_SERVER, VirtualTourArrowStyle, VirtualTourNode, VirtualTourNodeChangedData, VirtualTourNodeLink, VirtualTourPlugin, VirtualTourPluginPluginOptions };
+export { EVENTS, MODE_3D, MODE_CLIENT, MODE_GPS, MODE_MANUAL, MODE_MARKERS, MODE_SERVER, VirtualTourArrowStyle, VirtualTourMarkerStyle, VirtualTourNode, VirtualTourNodeChangedData, VirtualTourNodeLink, VirtualTourPlugin, VirtualTourPluginPluginOptions };

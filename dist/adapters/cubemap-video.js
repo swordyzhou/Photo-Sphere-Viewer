@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.CubemapVideoAdapter = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -149,7 +149,7 @@
       var video = this.__createVideo(panorama.source);
 
       return this.__videoLoadPromise(video).then(function () {
-        var texture = new THREE.VideoTexture(video);
+        var texture = new three.VideoTexture(video);
         return {
           panorama: panorama,
           texture: texture
@@ -357,7 +357,7 @@
       }
 
       var cubeSize = photoSphereViewer.CONSTANTS.SPHERE_RADIUS * 2 * scale;
-      var geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize).scale(1, 1, -1).toNonIndexed();
+      var geometry = new three.BoxGeometry(cubeSize, cubeSize, cubeSize).scale(1, 1, -1).toNonIndexed();
       geometry.clearGroups();
       var uvs = geometry.getAttribute('uv');
       /*
@@ -427,7 +427,7 @@
       uvs.setXY(34, c, B);
       uvs.setXY(35, c, A); // shamelessly copied from https://github.com/videojs/videojs-vr
 
-      var material = new THREE.ShaderMaterial({
+      var material = new three.ShaderMaterial({
         uniforms: {
           mapped: {
             value: null
@@ -436,16 +436,16 @@
             value: 1
           },
           faceWH: {
-            value: new THREE.Vector2(1 / 3, 1 / 2)
+            value: new three.Vector2(1 / 3, 1 / 2)
           },
           vidWH: {
-            value: new THREE.Vector2(1, 1)
+            value: new three.Vector2(1, 1)
           }
         },
         vertexShader: "\nvarying vec2 vUv;\nvoid main() {\n  vUv = uv;\n  gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.);\n}",
-        fragmentShader: "\nvarying vec2 vUv;\nuniform sampler2D mapped;\nuniform vec2 faceWH;\nuniform vec2 vidWH;\nuniform float contCorrect;\nconst float PI = 3.1415926535897932384626433832795;\nvoid main() {\n  vec2 corner = vUv - mod(vUv, faceWH) + vec2(0, contCorrect / vidWH.y);\n  vec2 faceWHadj = faceWH - vec2(0, contCorrect * 2. / vidWH.y);\n  vec2 p = (vUv - corner) / faceWHadj - .5;\n  vec2 q = " + (this.config.equiangular ? '2. / PI * atan(2. * p) + .5' : 'p + .5') + ";\n  vec2 eUv = corner + q * faceWHadj;\n  gl_FragColor = texture2D(mapped, eUv);\n}"
+        fragmentShader: "\nvarying vec2 vUv;\nuniform sampler2D mapped;\nuniform vec2 faceWH;\nuniform vec2 vidWH;\nuniform float contCorrect;\n\nconst float PI = 3.1415926535897932384626433832795;\n\nvoid main() {\n  vec2 corner = vUv - mod(vUv, faceWH) + vec2(0, contCorrect / vidWH.y);\n  vec2 faceWHadj = faceWH - vec2(0, contCorrect * 2. / vidWH.y);\n  vec2 p = (vUv - corner) / faceWHadj - .5;\n  vec2 q = " + (this.config.equiangular ? '2. / PI * atan(2. * p) + .5' : 'p + .5') + ";\n  vec2 eUv = corner + q * faceWHadj;\n  gl_FragColor = texture2D(mapped, eUv);\n}"
       });
-      return new THREE.Mesh(geometry, material);
+      return new three.Mesh(geometry, material);
     }
     /**
      * @override

@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.EquirectangularTilesAdapter = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -201,8 +201,8 @@
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillText('⚠', canvas.width / 2, canvas.height / 2);
-    var texture = new THREE.CanvasTexture(canvas);
-    return new THREE.MeshBasicMaterial({
+    var texture = new three.CanvasTexture(canvas);
+    return new three.MeshBasicMaterial({
       map: texture
     });
   }
@@ -310,9 +310,9 @@
     return tile.col + "x" + tile.row;
   }
 
-  var frustum = new THREE.Frustum();
-  var projScreenMatrix = new THREE.Matrix4();
-  var vertexPosition = new THREE.Vector3();
+  var frustum = new three.Frustum();
+  var projScreenMatrix = new three.Matrix4();
+  var vertexPosition = new three.Vector3();
   /**
    * @summary Adapter for tiled panoramas
    * @memberof PSV.adapters
@@ -342,7 +342,7 @@
         baseBlur: true
       }, options);
 
-      if (!photoSphereViewer.utils.isPowerOfTwo(_this.config.resolution)) {
+      if (!three.MathUtils.isPowerOfTwo(_this.config.resolution)) {
         throw new photoSphereViewer.PSVError('EquirectangularAdapter resolution must be power of two');
       }
 
@@ -386,7 +386,7 @@
        * @private
        */
 
-      _this.loader = new THREE.ImageLoader();
+      _this.loader = new three.ImageLoader();
 
       if (_this.psv.config.withCredentials) {
         _this.loader.setWithCredentials(true);
@@ -496,7 +496,7 @@
         return Promise.reject(new photoSphereViewer.PSVError("Panorama rows must not be greater than " + this.SPHERE_HORIZONTAL_SEGMENTS + "."));
       }
 
-      if (!photoSphereViewer.utils.isPowerOfTwo(panorama.cols) || !photoSphereViewer.utils.isPowerOfTwo(panorama.rows)) {
+      if (!three.MathUtils.isPowerOfTwo(panorama.cols) || !three.MathUtils.isPowerOfTwo(panorama.rows)) {
         return Promise.reject(new photoSphereViewer.PSVError('Panorama cols and rows must be powers of 2.'));
       }
 
@@ -537,7 +537,7 @@
         scale = 1;
       }
 
-      var geometry = new THREE.SphereGeometry(photoSphereViewer.CONSTANTS.SPHERE_RADIUS * scale, this.SPHERE_SEGMENTS, this.SPHERE_HORIZONTAL_SEGMENTS, -Math.PI / 2).scale(-1, 1, 1).toNonIndexed();
+      var geometry = new three.SphereGeometry(photoSphereViewer.CONSTANTS.SPHERE_RADIUS * scale, this.SPHERE_SEGMENTS, this.SPHERE_HORIZONTAL_SEGMENTS, -Math.PI / 2).scale(-1, 1, 1).toNonIndexed();
       geometry.clearGroups();
       var i = 0;
       var k = 0; // first row
@@ -557,7 +557,7 @@
       }
 
       geometry.setAttribute(ATTR_ORIGINAL_UV, geometry.getAttribute(ATTR_UV).clone());
-      return new THREE.Mesh(geometry, []);
+      return new three.Mesh(geometry, []);
     }
     /**
      * @summary Applies the base texture and starts the loading of tiles
@@ -602,11 +602,11 @@
       var material;
 
       if (texture) {
-        material = new THREE.MeshBasicMaterial({
+        material = new three.MeshBasicMaterial({
           map: texture
         });
       } else {
-        material = new THREE.MeshBasicMaterial({
+        material = new three.MeshBasicMaterial({
           opacity: 0,
           transparent: true
         });
@@ -827,7 +827,7 @@
         _this5.loader.load(url, resolve, undefined, reject);
       }).then(function (image) {
         if (!task.isCancelled()) {
-          var material = new THREE.MeshBasicMaterial({
+          var material = new three.MeshBasicMaterial({
             map: photoSphereViewer.utils.createTexture(image)
           });
 

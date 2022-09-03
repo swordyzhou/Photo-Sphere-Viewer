@@ -1,8 +1,9 @@
-import { AbstractPlugin, PanoramaOptions, Viewer } from '../..';
+import { AbstractPlugin, PanoramaOptions, Size, Viewer } from '../..';
 
 export type GalleryPluginOptions = {
   items?: GalleryPluginItem[];
   visibleOnLoad?: boolean;
+  thumbnailSize?: Size;
 };
 
 export type GalleryPluginItem = {
@@ -19,9 +20,9 @@ export const EVENTS: {
 };
 
 /**
- * @summary Adds a compass on the viewer
+ * @summary Adds a gallery of multiple panoramas
  */
-export class CompassPlugin extends AbstractPlugin {
+export class GalleryPlugin extends AbstractPlugin {
 
   static EVENTS: typeof EVENTS;
 

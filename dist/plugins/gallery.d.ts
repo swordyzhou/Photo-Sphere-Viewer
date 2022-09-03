@@ -1,8 +1,9 @@
-import { PanoramaOptions, AbstractPlugin, Viewer } from 'photo-sphere-viewer';
+import { Size, PanoramaOptions, AbstractPlugin, Viewer } from 'photo-sphere-viewer';
 
 type GalleryPluginOptions = {
   items?: GalleryPluginItem[];
   visibleOnLoad?: boolean;
+  thumbnailSize?: Size;
 };
 
 type GalleryPluginItem = {
@@ -19,9 +20,9 @@ declare const EVENTS: {
 };
 
 /**
- * @summary Adds a compass on the viewer
+ * @summary Adds a gallery of multiple panoramas
  */
-declare class CompassPlugin extends AbstractPlugin {
+declare class GalleryPlugin extends AbstractPlugin {
 
   static EVENTS: typeof EVENTS;
 
@@ -59,4 +60,4 @@ declare class CompassPlugin extends AbstractPlugin {
 
 }
 
-export { CompassPlugin, EVENTS, GalleryPluginItem, GalleryPluginOptions };
+export { EVENTS, GalleryPlugin, GalleryPluginItem, GalleryPluginOptions };

@@ -1,6 +1,6 @@
-import * as THREE from 'three';
+import { LinearFilter, MathUtils, Quaternion, Texture } from 'three';
 import { PSVError } from '../PSVError';
-import { bound, loop } from './math';
+import { loop } from './math';
 
 /**
  * @summary Returns the plugin constructor from the imported object
@@ -163,15 +163,10 @@ const TOP_MAP = { 0: 'top', 0.5: 'center', 1: 'bottom' };
  * @summary Parse a CSS-like position into an array of position keywords among top, bottom, left, right and center
  * @memberOf PSV.utils
  * @param {string | string[]} value
- * @param {string} defaultValue
  * @param {boolean} [allowCenter=true]
  * @return {string[]}
  */
-export function cleanPosition(value, defaultValue, allowCenter = true) {
-  if (!value) {
-    return defaultValue.split(' ');
-  }
-
+export function cleanPosition(value, allowCenter = true) {
   if (typeof value === 'string') {
     const tempPos = parsePosition(value);
 
@@ -218,7 +213,7 @@ export function parseSpeed(speed) {
       case 'degrees per minute':
       case 'dps':
       case 'degrees per second':
-        parsed = THREE.MathUtils.degToRad(speedValue);
+        parsed = MathUtils.degToRad(speedValue);
         break;
 
       // Radians per minute / second
@@ -275,7 +270,7 @@ export function parseAngle(angle, zeroCenter = false, halfCircle = zeroCenter) {
       switch (unit) {
         case 'deg':
         case 'degs':
-          parsed = THREE.MathUtils.degToRad(value);
+          parsed = MathUtils.degToRad(value);
           break;
         case 'rad':
         case 'rads':
@@ -298,7 +293,7 @@ export function parseAngle(angle, zeroCenter = false, halfCircle = zeroCenter) {
 
   parsed = loop(zeroCenter ? parsed + Math.PI : parsed, Math.PI * 2);
 
-  return zeroCenter ? bound(parsed - Math.PI, -Math.PI / (halfCircle ? 2 : 1), Math.PI / (halfCircle ? 2 : 1)) : parsed;
+  return zeroCenter ? MathUtils.clamp(parsed - Math.PI, -Math.PI / (halfCircle ? 2 : 1), Math.PI / (halfCircle ? 2 : 1)) : parsed;
 }
 
 /**
@@ -308,14 +303,14 @@ export function parseAngle(angle, zeroCenter = false, halfCircle = zeroCenter) {
  * @return {external:THREE.Texture}
  */
 export function createTexture(img) {
-  const texture = new THREE.Texture(img);
+  const texture = new Texture(img);
   texture.needsUpdate = true;
-  texture.minFilter = THREE.LinearFilter;
+  texture.minFilter = LinearFilter;
   texture.generateMipmaps = false;
   return texture;
 }
 
-const quaternion = new THREE.Quaternion();
+const quaternion = new Quaternion();
 
 /**
  * @summary Applies the inverse of Euler angles to a vector

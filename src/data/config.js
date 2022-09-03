@@ -1,8 +1,9 @@
+import { MathUtils } from 'three';
 import { AbstractAdapter } from '../adapters/AbstractAdapter';
 import { EquirectangularAdapter } from '../adapters/equirectangular';
 import { AbstractPlugin } from '../plugins/AbstractPlugin';
 import { PSVError } from '../PSVError';
-import { bound, clone, deepmerge, each, isNil, logWarn, parseAngle, parseSpeed, pluginInterop } from '../utils';
+import { clone, deepmerge, each, isNil, logWarn, parseAngle, parseSpeed, pluginInterop } from '../utils';
 import { ACTIONS, KEY_CODES } from './constants';
 
 /**
@@ -13,6 +14,8 @@ import { ACTIONS, KEY_CODES } from './constants';
  */
 export const DEFAULTS = {
   panorama           : null,
+  overlay            : null,
+  overlayOpacity     : 1,
   container          : null,
   adapter            : null,
   plugins            : [],
@@ -129,6 +132,9 @@ export const CONFIG_PARSERS = {
     }
     return adapter;
   },
+  overlayOpacity : (overlayOpacity) => {
+    return MathUtils.clamp(overlayOpacity, 0, 1);
+  },
   defaultLong    : (defaultLong) => {
     // defaultLat is between 0 and PI
     return parseAngle(defaultLong);
@@ -144,7 +150,7 @@ export const CONFIG_PARSERS = {
       minFov = config.maxFov;
     }
     // minFov between 1 and 179
-    return bound(minFov, 1, 179);
+    return MathUtils.clamp(minFov, 1, 179);
   },
   maxFov         : (maxFov, config) => {
     // minFov and maxFov must be ordered
@@ -152,7 +158,7 @@ export const CONFIG_PARSERS = {
       maxFov = config.minFov;
     }
     // maxFov between 1 and 179
-    return bound(maxFov, 1, 179);
+    return MathUtils.clamp(maxFov, 1, 179);
   },
   lang           : (lang) => {
     if (Array.isArray(lang.twoFingers)) {

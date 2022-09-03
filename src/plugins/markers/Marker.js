@@ -1,6 +1,5 @@
-import * as THREE from 'three';
+import { Group, MathUtils, Mesh, MeshBasicMaterial, PlaneGeometry, TextureLoader } from 'three';
 import { CONSTANTS, PSVError, utils } from '../..';
-import { getShortestArc, logWarn } from '../../utils';
 import { MARKER_DATA, MARKER_TOOLTIP_TRIGGER, SVG_NS } from './constants';
 import { getPolygonCenter, getPolylineCenter } from './utils';
 
@@ -133,7 +132,7 @@ export class Marker {
     this.loader = null;
 
     if (this.is3d()) {
-      this.loader = new THREE.TextureLoader();
+      this.loader = new TextureLoader();
       if (this.psv.config.withCredentials) {
         this.loader.setWithCredentials(true);
       }
@@ -153,7 +152,8 @@ export class Marker {
       this.$el = document.createElementNS(SVG_NS, 'polyline');
     }
     else if (this.isSvg()) {
-      this.$el = document.createElementNS(SVG_NS, this.type);
+      const svgType = this.type === 'square' ? 'rect' : this.type;
+      this.$el = document.createElementNS(SVG_NS, svgType);
     }
 
     if (!this.is3d()) {
@@ -270,8 +270,8 @@ export class Marker {
     }
     if (Array.isArray(this.config.scale.longitude)) {
       const bounds = this.config.scale.longitude;
-      const halfFov = THREE.MathUtils.degToRad(this.psv.prop.hFov) / 2;
-      const arc = Math.abs(getShortestArc(this.props.position.longitude, position.longitude));
+      const halfFov = MathUtils.degToRad(this.psv.prop.hFov) / 2;
+      const arc = Math.abs(utils.getShortestArc(this.props.position.longitude, position.longitude));
       scale *= bounds[1] + (bounds[0] - bounds[1]) * CONSTANTS.EASINGS.outQuad(Math.max(0, (halfFov - arc) / halfFov));
     }
     return scale;
@@ -394,7 +394,7 @@ export class Marker {
     if (!this.is3d()) {
       // reset CSS class
       if (this.isNormal()) {
-        this.$el.setAttribute('class', 'psv-marker psv-marker--normal');
+        this.$el.className = 'psv-marker psv-marker--normal';
       }
       else {
         this.$el.setAttribute('class', 'psv-marker psv-marker--svg');
@@ -406,10 +406,10 @@ export class Marker {
       }
 
       if (this.config.tooltip) {
-        utils.addClasses(this.$el, 'psv-marker--has-tooltip');
+        this.$el.classList.add('psv-marker--has-tooltip');
       }
       if (this.config.content) {
-        utils.addClasses(this.$el, 'psv-marler--has-content');
+        this.$el.classList.add('psv-marler--has-content');
       }
 
       // apply style
@@ -425,7 +425,7 @@ export class Marker {
     // clean scale
     if (this.config.scale) {
       if (typeof this.config.scale === 'number') {
-        logWarn('Single value marker scale is deprecated, please use an array of two values.');
+        utils.logWarn('Single value marker scale is deprecated, please use an array of two values.');
         this.config.scale = { zoom: [0, this.config.scale] };
       }
       if (Array.isArray(this.config.scale)) {
@@ -672,15 +672,15 @@ export class Marker {
     switch (this.type) {
       case MARKER_TYPES.imageLayer:
         if (!this.$el) {
-          const material = new THREE.MeshBasicMaterial({
+          const material = new MeshBasicMaterial({
             transparent: true,
             opacity    : this.config.opacity ?? 1,
             depthTest  : false,
           });
-          const geometry = new THREE.PlaneGeometry(1, 1);
-          const mesh = new THREE.Mesh(geometry, material);
+          const geometry = new PlaneGeometry(1, 1);
+          const mesh = new Mesh(geometry, material);
           mesh.userData = { [MARKER_DATA]: this };
-          this.$el = new THREE.Group().add(mesh);
+          this.$el = new Group().add(mesh);
 
           // overwrite the visible property to be tied to the Marker instance
           // and do it without context bleed

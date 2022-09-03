@@ -270,6 +270,8 @@ type PanoramaOptions = (ExtendedPosition | {}) & {
   zoom?: number;
   sphereCorrection?: SphereCorrection;
   panoData?: PanoData | PanoDataProvider;
+  overlay?: any;
+  overlayOpacity?: number;
 };
 
 /**
@@ -305,7 +307,7 @@ type NavbarCustomButton = {
   title?: string;
   content?: string;
   className?: string;
-  onClick: () => void;
+  onClick: (Viewer) => void;
   disabled?: boolean;
   visible?: boolean;
   collapsable?: boolean;
@@ -483,26 +485,6 @@ declare class Animation<T> implements PromiseLike<boolean> {
   then<TResult = boolean>(onFulfilled?: ((completed: boolean) => TResult | PromiseLike<TResult>) | undefined | null): PromiseLike<TResult>;
 
   cancel();
-
-  /**
-   * @deprecated does not accept a rejection handler anymore
-   */
-  then(onFulfilled?: (() => void | Animation<any> | PromiseLike<void>) | undefined | null, onRejected?: (() => void | Animation<any> | PromiseLike<void>) | undefined | null): Animation<unknown>;
-
-  /**
-   * @deprecated not supported anymore
-   */
-  catch(onRejected?: (() => void | Animation<any> | PromiseLike<void>) | undefined | null): Animation<unknown>;
-
-  /**
-   * @deprecated not supported anymore
-   */
-  finally(onFinally?: (() => void | Animation<any> | PromiseLike<void>) | undefined | null): Animation<unknown>;
-
-  /**
-   * @deprecated not supported anymore
-   */
-  static resolve(): Animation<unknown>;
 
 }
 
@@ -967,6 +949,8 @@ type ViewerOptions = {
   container: HTMLElement | string;
   panorama?: any;
   adapter?: AdapterConstructor<any> | [AdapterConstructor<any>, any];
+  overlay?: any;
+  overlayOpacity?: number;
   caption?: string;
   description?: string;
   downloadUrl?: string;
@@ -1129,6 +1113,11 @@ declare class Viewer extends EventEmitter {
    * @returns resolves false if the loading was aborted by another call
    */
   setPanorama(panorama: any, options?: PanoramaOptions): Promise<boolean>;
+
+  /**
+   * @summary Loads a new overlay
+   */
+  setOverlay(path: any, opacity?: number): Promise<unknown>;
 
   /**
    * @summary Update options
@@ -1352,6 +1341,11 @@ declare abstract class AbstractAdapter<T> {
    */
   static supportsDownload: boolean;
 
+  /**
+   * @summary Indicated if the adapter can display an additional transparent image above the panorama
+   */
+  static supportsOverlay: boolean;
+
   constructor(parent: Viewer);
 
   /**
@@ -1372,7 +1366,7 @@ declare abstract class AbstractAdapter<T> {
   /**
    * @summary Loads the panorama texture(s)
    */
-  loadTexture(panorama: T, newPanoData?: PanoData | PanoDataProvider): Promise<TextureData>;
+  loadTexture(panorama: T, newPanoData?: PanoData | PanoDataProvider, useXmpPanoData?: boolean): Promise<TextureData>;
 
   /**
    * @summary Creates the cube mesh
@@ -1394,6 +1388,11 @@ declare abstract class AbstractAdapter<T> {
    * @summary Cleanup a loaded texture, used on load abort
    */
   disposeTexture(textureData: TextureData);
+
+  /**
+   * @summary Applies the overlay to the mesh
+   */
+  setOverlay(mesh: Mesh, textureData: TextureData, opacity: number);
 
 }
 

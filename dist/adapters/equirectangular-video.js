@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.EquirectangularVideoAdapter = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -149,7 +149,7 @@
       var video = this.__createVideo(panorama.source);
 
       return this.__videoLoadPromise(video).then(function () {
-        var texture = new THREE.VideoTexture(video);
+        var texture = new three.VideoTexture(video);
         return {
           panorama: panorama,
           texture: texture
@@ -336,7 +336,7 @@
         resolution: 64
       }, options)) || this;
 
-      if (!photoSphereViewer.utils.isPowerOfTwo(_this.config.resolution)) {
+      if (!three.MathUtils.isPowerOfTwo(_this.config.resolution)) {
         throw new photoSphereViewer.PSVError('EquirectangularVideoAdapter resolution must be power of two');
       }
 
@@ -385,9 +385,9 @@
         scale = 1;
       }
 
-      var geometry = new THREE.SphereGeometry(photoSphereViewer.CONSTANTS.SPHERE_RADIUS * scale, this.SPHERE_SEGMENTS, this.SPHERE_HORIZONTAL_SEGMENTS, -Math.PI / 2).scale(-1, 1, 1);
-      var material = new THREE.MeshBasicMaterial();
-      return new THREE.Mesh(geometry, material);
+      var geometry = new three.SphereGeometry(photoSphereViewer.CONSTANTS.SPHERE_RADIUS * scale, this.SPHERE_SEGMENTS, this.SPHERE_HORIZONTAL_SEGMENTS, -Math.PI / 2).scale(-1, 1, 1);
+      var material = new three.MeshBasicMaterial();
+      return new three.Mesh(geometry, material);
     }
     /**
      * @override

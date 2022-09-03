@@ -82,6 +82,8 @@ export type PanoramaOptions = (ExtendedPosition | {}) & {
   zoom?: number;
   sphereCorrection?: SphereCorrection;
   panoData?: PanoData | PanoDataProvider;
+  overlay?: any;
+  overlayOpacity?: number;
 };
 
 /**
@@ -117,7 +119,7 @@ export type NavbarCustomButton = {
   title?: string;
   content?: string;
   className?: string;
-  onClick: () => void;
+  onClick: (Viewer) => void;
   disabled?: boolean;
   visible?: boolean;
   collapsable?: boolean;

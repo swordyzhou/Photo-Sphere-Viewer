@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.AutorotateKeypointsPlugin = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -351,7 +351,7 @@
       } // apply offsets to avoid crossing the origin
 
 
-      var workVectors = [new THREE.Vector2(workPoints[0][0], workPoints[0][1])];
+      var workVectors = [new three.Vector2(workPoints[0][0], workPoints[0][1])];
       var k = 0;
 
       for (var _i = 1; _i <= 3; _i++) {
@@ -371,10 +371,10 @@
           k = 0;
         }
 
-        workVectors.push(new THREE.Vector2(workPoints[_i][0] + k * 2 * Math.PI, workPoints[_i][1]));
+        workVectors.push(new three.Vector2(workPoints[_i][0] + k * 2 * Math.PI, workPoints[_i][1]));
       }
 
-      var curve = new THREE.SplineCurve(workVectors).getPoints(NUM_STEPS * 3).map(function (p) {
+      var curve = new three.SplineCurve(workVectors).getPoints(NUM_STEPS * 3).map(function (p) {
         return [p.x, p.y];
       }); // debugCurve(this.markers, curve, NUM_STEPS);
       // only keep the curve for the current movement

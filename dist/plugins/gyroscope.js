@@ -1,5 +1,5 @@
 /*!
-* Photo Sphere Viewer 4.7.0
+* Photo Sphere Viewer 4.7.1
 * @copyright 2014-2015 Jérémy Heleine
 * @copyright 2015-2022 Damien "Mistic" Sorel
 * @licence MIT (https://opensource.org/licenses/MIT)
@@ -8,7 +8,7 @@
   typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports, require('three'), require('photo-sphere-viewer')) :
   typeof define === 'function' && define.amd ? define(['exports', 'three', 'photo-sphere-viewer'], factory) :
   (global = typeof globalThis !== 'undefined' ? globalThis : global || self, factory((global.PhotoSphereViewer = global.PhotoSphereViewer || {}, global.PhotoSphereViewer.GyroscopePlugin = {}), global.THREE, global.PhotoSphereViewer));
-})(this, (function (exports, THREE, photoSphereViewer) { 'use strict';
+})(this, (function (exports, three, photoSphereViewer) { 'use strict';
 
   function _extends() {
     _extends = Object.assign ? Object.assign.bind() : function (target) {
@@ -66,13 +66,13 @@
     GYROSCOPE_UPDATED: 'gyroscope-updated'
   };
 
-  var _zee = new THREE.Vector3(0, 0, 1);
+  var _zee = new three.Vector3(0, 0, 1);
 
-  var _euler = new THREE.Euler();
+  var _euler = new three.Euler();
 
-  var _q0 = new THREE.Quaternion();
+  var _q0 = new three.Quaternion();
 
-  var _q1 = new THREE.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
+  var _q1 = new three.Quaternion(-Math.sqrt(0.5), 0, 0, Math.sqrt(0.5)); // - PI/2 around the x-axis
 
   /**
    * Copied from three.js examples before deletion in r134
@@ -88,7 +88,7 @@
 
     var scope = this;
     var EPS = 0.000001;
-    var lastQuaternion = new THREE.Quaternion();
+    var lastQuaternion = new three.Quaternion();
     this.object = object;
     this.object.rotation.reorder('YXZ');
     this.enabled = true;
@@ -148,13 +148,13 @@
       var device = scope.deviceOrientation;
 
       if (device) {
-        var alpha = device.alpha ? THREE.MathUtils.degToRad(device.alpha) + scope.alphaOffset : 0; // Z
+        var alpha = device.alpha ? three.MathUtils.degToRad(device.alpha) + scope.alphaOffset : 0; // Z
 
-        var beta = device.beta ? THREE.MathUtils.degToRad(device.beta) : 0; // X'
+        var beta = device.beta ? three.MathUtils.degToRad(device.beta) : 0; // X'
 
-        var gamma = device.gamma ? THREE.MathUtils.degToRad(device.gamma) : 0; // Y''
+        var gamma = device.gamma ? three.MathUtils.degToRad(device.gamma) : 0; // Y''
 
-        var orient = scope.screenOrientation ? THREE.MathUtils.degToRad(scope.screenOrientation) : 0; // O
+        var orient = scope.screenOrientation ? three.MathUtils.degToRad(scope.screenOrientation) : 0; // O
 
         setObjectQuaternion(scope.object.quaternion, alpha, beta, gamma, orient);
 
@@ -267,7 +267,7 @@
 
   photoSphereViewer.DEFAULTS.lang[GyroscopeButton.id] = 'Gyroscope';
   photoSphereViewer.registerButton(GyroscopeButton, 'caption:right');
-  var direction = new THREE.Vector3();
+  var direction = new three.Vector3();
   /**
    * @summary Adds gyroscope controls on mobile devices
    * @extends PSV.plugins.AbstractPlugin
@@ -410,7 +410,7 @@
         _this2.psv.config.moveInertia = false; // enable gyro controls
 
         if (!_this2.controls) {
-          _this2.controls = new DeviceOrientationControls(new THREE.Object3D());
+          _this2.controls = new DeviceOrientationControls(new three.Object3D());
         } else {
           _this2.controls.connect();
         } // force reset

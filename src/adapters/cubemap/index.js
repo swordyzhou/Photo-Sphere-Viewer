@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import { BoxGeometry, Mesh, Texture, Vector2 } from 'three';
 import { AbstractAdapter, CONSTANTS, PSVError, SYSTEM, utils } from '../..';
 
 
@@ -34,6 +34,7 @@ export class CubemapAdapter extends AbstractAdapter {
 
   static id = 'cubemap';
   static supportsDownload = false;
+  static supportsOverlay = true;
 
   /**
    * @param {PSV.Viewer} psv
@@ -152,15 +153,15 @@ export class CubemapAdapter extends AbstractAdapter {
    */
   createMesh(scale = 1) {
     const cubeSize = CONSTANTS.SPHERE_RADIUS * 2 * scale;
-    const geometry = new THREE.BoxGeometry(cubeSize, cubeSize, cubeSize)
+    const geometry = new BoxGeometry(cubeSize, cubeSize, cubeSize)
       .scale(1, 1, -1);
 
     const materials = [];
     for (let i = 0; i < 6; i++) {
-      materials.push(new THREE.MeshBasicMaterial());
+      materials.push(AbstractAdapter.createOverlayMaterial());
     }
 
-    return new THREE.Mesh(geometry, materials);
+    return new Mesh(geometry, materials);
   }
 
   /**
@@ -171,12 +172,28 @@ export class CubemapAdapter extends AbstractAdapter {
 
     for (let i = 0; i < 6; i++) {
       if (this.config.flipTopBottom && (i === 2 || i === 3)) {
-        texture[i].center = new THREE.Vector2(0.5, 0.5);
+        texture[i].center = new Vector2(0.5, 0.5);
         texture[i].rotation = Math.PI;
       }
 
-      mesh.material[i].map?.dispose();
-      mesh.material[i].map = texture[i];
+      this.__setUniform(mesh, i, AbstractAdapter.OVERLAY_UNIFORMS.panorama, texture[i]);
+    }
+
+    this.setOverlay(mesh, null);
+  }
+
+  /**
+   * @override
+   */
+  setOverlay(mesh, textureData, opacity) {
+    for (let i = 0; i < 6; i++) {
+      this.__setUniform(mesh, i, AbstractAdapter.OVERLAY_UNIFORMS.overlayOpacity, opacity);
+      if (!textureData) {
+        this.__setUniform(mesh, i, AbstractAdapter.OVERLAY_UNIFORMS.overlay, new Texture());
+      }
+      else {
+        this.__setUniform(mesh, i, AbstractAdapter.OVERLAY_UNIFORMS.overlay, textureData.texture[i]);
+      }
     }
   }
 
@@ -185,7 +202,7 @@ export class CubemapAdapter extends AbstractAdapter {
    */
   setTextureOpacity(mesh, opacity) {
     for (let i = 0; i < 6; i++) {
-      mesh.material[i].opacity = opacity;
+      this.__setUniform(mesh, i, AbstractAdapter.OVERLAY_UNIFORMS.globalOpacity, opacity);
       mesh.material[i].transparent = opacity < 1;
     }
   }
@@ -195,6 +212,20 @@ export class CubemapAdapter extends AbstractAdapter {
    */
   disposeTexture(textureData) {
     textureData.texture?.forEach(texture => texture.dispose());
+  }
+
+  /**
+   * @param {external:THREE.Mesh} mesh
+   * @param {number} index
+   * @param {string} uniform
+   * @param {*} value
+   * @private
+   */
+  __setUniform(mesh, index, uniform, value) {
+    if (mesh.material[index].uniforms[uniform].value instanceof Texture) {
+      mesh.material[index].uniforms[uniform].value.dispose();
+    }
+    mesh.material[index].uniforms[uniform].value = value;
   }
 
 }
